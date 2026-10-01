@@ -1,41 +1,51 @@
 import time
 import subprocess
+from pathlib import Path
 
 # Constrói o arquivo e path de backup e rotorna
 def gera_backup(origem = '~/testar-backup/arquivos-teste/', destino = '~/testar-backup/backups/'):
+
+    # expandir "~" para "/home/usuario/"
+    origem = Path(origem).expanduser()
+    destino = Path(destino).expanduser()
+
     date = (time.strftime("%Y-%m-%d"))
     
     # Define o nome do arquivo de backup
     backup_file = '%s-backup-full.tar.gz' % date
     
     # Define a pasta de origem e de destino do backup
-    path_destino = destino + backup_file
+    path_destino = destino / backup_file                # Operador "/" junta caminhos
     
-    backup = 'tar czvf %s %s' % (path_destino, origem)
-    
-    return backup
+    # backup = 'tar czvf %s %s' % (path_destino, origem)
+
+    backup = ['tar', 'czvf', path_destino, origem]
+    return backup, path_destino
 
 # Constroi os logs do sistema - Aqui selecionamos o nome do backup e o arquivo de logs que iremos criar.
 def gera_log(destino='/home/estagiario01/testar-backup/logs/'):
     date = (time.strftime("%Y-%m-%d"))
+    destino = Path(destino)
     logfile = '%s-backup-full.txt' % date # Cria o arquivo de Log
-    path_log = destino + logfile    # Arquivo de log
+    path_log = destino / logfile    # Arquivo de log
 
     return path_log
 
+# Gera a mensagem de inicio de backup para imprimir no inicio do log.
 def inicio(hora):
-    inicio = "="*10 + "\n"
+    inicio = "="*16 + "\n"
     inicio += "INÍCIO DO BACKUP\n"
     inicio += "Hora: " + hora + "\n"
-    inicio += "="*10 + "\n"
+    inicio += "="*16 + "\n"
     
     return inicio
 
-def termino(dia_inicio, hora_inicio, backup, path_log):
+# Gera a mensagem de finalizacao para imprimir no fim do log e no terminal.
+def termino(dia_inicio, hora_inicio, path_backup, path_log):
     final = "FIM DO BACKUP\n"
     final += ("Início: " + dia_inicio + " - " + hora_inicio)
-    final += ("\nLOG FILE: " + path_log)
-    final += ("\nBACKUP FILE: " + backup)
+    final += ("\nLOG FILE: " + str(path_log))
+    final += ("\nBACKUP FILE: " + str(path_backup))
     print(final)
     return final
 
@@ -44,8 +54,7 @@ def backup_full():
     disk = '/dev/sdb'       # Define onde esta a particao que sera usada para guardar o backup
     hora_inicio = time.strftime("%H:%M:%S")
     path_log = gera_log()
-    backup = gera_backup()
-    log = ' >> %s' % path_log
+    backup, path_backup = gera_backup()
     start = inicio(hora_inicio)
 
     # Printa o Banner
@@ -54,15 +63,27 @@ def backup_full():
     l.close()
 
     # Monta todos os discos que estão no FSTAB
-    mount = 'mount -a'
-    subprocess.call(mount, shell=True)
+    mount = ['mount', '-a']
+    resultado_mont = subprocess.run(mount)
+    if (resultado_mont.returncode !=0):
+        print("Erro: Falha ao montar discos.")
+        return
 
     # Roda o backup
-    subprocess.call(backup + log, shell=True)
+    with open(path_log, 'a') as log:
+        resultado_backup = subprocess.run(
+            backup,
+            stdout=log,     # Imprime a saida, em caso de sucesso, no arquivo de log.
+            stderr=log      # Imprime o erro, em caso de falha, no arquivo de log.
+        )
+    if (resultado_backup.returncode == 0):
+        print("Backup realiado com sucesso")
+    else:
+        print("Erro: Falha ao realizar backup")
 
     # Printa o final e relatório
     dia_incio = (time.strftime("%d-%m-%Y"))
-    final = termino(dia_incio, hora_inicio, backup, path_log)
+    final = termino(dia_incio, hora_inicio, path_backup, path_log)
     r = open(path_log, 'a')
     r.write(final)
     r.close()
