@@ -1,29 +1,35 @@
 import time
 import subprocess
+from pathlib import Path
 
 # CONSTROI O ARQUIVE E PATH DE BACKUP
 def gera_backup (path_origem = '~/testar-backup/arquivos-teste/', path_destino = '~/testar-backup/backups/', exclude = ('*.log', '*.tmp', '.recycle')):
     # path_origem eh o diretorio dos arquivos que quero fazer backup
     # path_destino eh o diretorio onde o backup sera salvo
     # exclude sao arquivos e diretorios que nao quaro copiar
-    
+    path_destino = Path(path_destino).expanduser()
+    path_origem = Path(path_origem).expanduser()
     date = (time.strftime("%Y-%m-%d"))
-    opts = 'Cravzp'
+    opts = '-Cravzp'
     #opts = 'rvtl'
-    excludes = ' '.join(
+    excludes = (
         '--exclude="%s"' % item
         for item in exclude
     )
-    backup = 'rsync -%s %s %s %s' % (opts, excludes, path_origem, path_destino)
+    # backup = 'rsync %s %s %s %s' % (opts, excludes, path_origem, path_destino)
 
+    backup = ['rsync', opts]
+    backup.extend(excludes)
+    backup.extend([path_origem, path_destino])
     #print backup
     #sys.exit()
-    return backup
+    return backup, path_destino
 
 def gera_log(path_log = '/home/estagiario01/testar-backup/logs/'):
+    path_log = Path(path_log).expanduser()
     date = (time.strftime("%Y-%m-%d"))
     logfile = '%s-backup-rsync.txt' % date
-    path_log += logfile
+    path_log = path_log / logfile
 
     return path_log
 
@@ -35,11 +41,11 @@ def inicio(hora):
     
     return inicio
 
-def termino(dia_inicio, hora_inicio, backup, path_log):
+def termino(dia_inicio, hora_inicio, path_backup, path_log):
     final = "FIM DO BACKUP\n"
     final += ("Início: " + dia_inicio + " - " + hora_inicio)
-    final += ("\nLOG FILE: " + path_log)
-    final += ("\nBACKUP FILE: " + backup)
+    final += ("\nLOG FILE: " + str(path_log))
+    final += ("\nBACKUP FILE: " + str(path_backup))
     print(final)
     return final
 
@@ -52,9 +58,8 @@ def backup_clone ():
     path_origem = '~/testar-backup/arquivos-teste/'
     path_destino = '~/testar-backup/backups/'
     exclude = ('*.log', '*.tmp', '.recycle')
-    path_backup = gera_backup(path_origem, path_destino, exclude)   # retorna o comando linux para fazer o backup "diferencial"
+    backup, path_backup = gera_backup(path_origem, path_destino, exclude)   # retorna um vetor com os parametro para fazer o backup "diferencial" via comando linux
     
-    log = ' >> %s' %path_log
     start = inicio(hora_inicio)
 
     # Printar o Banner
@@ -63,17 +68,22 @@ def backup_clone ():
     l.close()
 
     # Monta todos os discos presentes no fstab
-    mount = 'mount -a'
-    resultado_mount = subprocess.call(mount, shell=True)
+    mount = ['mount', '-a']
+    resultado_mount = subprocess.run(mount)
 
-    if resultado_mount != 0:
-        print("Erro ao montar os discos!")
+    if resultado_mount.returncode != 0:
+        print("Erro: falha ao montar os discos!")
         return
 
     # Roda o backup
-    resultado = subprocess.call(path_backup + log, shell=True)
+    with open(path_log, 'a') as log:
+        resultado = subprocess.run(
+            backup,
+            stdout=log,
+            stderr=log
+        )
 
-    if resultado == 0:
+    if resultado.returncode == 0:
         print("Backup realizado com sucesso!")
     else:
         print("Erro ao realizar o backup!")

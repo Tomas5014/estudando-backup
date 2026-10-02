@@ -25,7 +25,7 @@ def gera_backup(origem = '~/testar-backup/arquivos-teste/', destino = '~/testar-
 # Constroi os logs do sistema - Aqui selecionamos o nome do backup e o arquivo de logs que iremos criar.
 def gera_log(destino='/home/estagiario01/testar-backup/logs/'):
     date = (time.strftime("%Y-%m-%d"))
-    destino = Path(destino)
+    destino = Path(destino).expanduser()
     logfile = '%s-backup-full.txt' % date # Cria o arquivo de Log
     path_log = destino / logfile    # Arquivo de log
 
@@ -53,8 +53,8 @@ def termino(dia_inicio, hora_inicio, path_backup, path_log):
 def backup_full():
     disk = '/dev/sdb'       # Define onde esta a particao que sera usada para guardar o backup
     hora_inicio = time.strftime("%H:%M:%S")
-    path_log = gera_log()
-    backup, path_backup = gera_backup()
+    path_log = gera_log('/home/estagiario01/testar-backup/logs/')
+    backup, path_backup = gera_backup('~/testar-backup/arquivos-teste/', '~/testar-backup/backups/')
     start = inicio(hora_inicio)
 
     # Printa o Banner
@@ -77,9 +77,12 @@ def backup_full():
             stderr=log      # Imprime o erro, em caso de falha, no arquivo de log.
         )
     if (resultado_backup.returncode == 0):
-        print("Backup realiado com sucesso")
+        if path_backup.exists() and path_backup.stat().st_size > 0:
+            print("Backup realizado com sucesso!")
+        else:
+            print("Erro: Arquivo de backup inválido ou não encontrado")
     else:
-        print("Erro: Falha ao realizar backup")
+        print("Erro: falha ao realizar backup")
 
     # Printa o final e relatório
     dia_incio = (time.strftime("%d-%m-%Y"))
