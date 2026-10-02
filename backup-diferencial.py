@@ -2,45 +2,41 @@ import time
 import subprocess
 from pathlib import Path
 
-# CONSTROI O ARQUIVE E PATH DE BACKUP
-def gera_backup (path_origem = '~/testar-backup/arquivos-teste/', path_destino = '~/testar-backup/backups/', exclude = ('*.log', '*.tmp', '.recycle')):
-    # path_origem eh o diretorio dos arquivos que quero fazer backup
-    # path_destino eh o diretorio onde o backup sera salvo
-    # exclude sao arquivos e diretorios que nao quaro copiar
-    path_destino = Path(path_destino).expanduser()
-    path_origem = Path(path_origem).expanduser()
+
+# Constroi o vetor para fazer o backup via subprocess.run()
+def gera_backup (path_origem, path_destino, exclude):    
     date = (time.strftime("%Y-%m-%d"))
     opts = '-Cravzp'
-    #opts = 'rvtl'
     excludes = (
         '--exclude="%s"' % item
         for item in exclude
     )
-    # backup = 'rsync %s %s %s %s' % (opts, excludes, path_origem, path_destino)
 
+    # Monta o vetor
     backup = ['rsync', opts]
     backup.extend(excludes)
     backup.extend([path_origem, path_destino])
-    #print backup
-    #sys.exit()
     return backup, path_destino
 
-def gera_log(path_log = '/home/estagiario01/testar-backup/logs/'):
-    path_log = Path(path_log).expanduser()
+
+# Gera o caminho para o log de backup
+def gera_log(path_log):
     date = (time.strftime("%Y-%m-%d"))
     logfile = '%s-backup-rsync.txt' % date
     path_log = path_log / logfile
-
     return path_log
 
+
+# Gera a mensagem de inicio do backup para o arquivo de log
 def inicio(hora):
     inicio = "="*10 + "\n"
     inicio += "INÍCIO DO BACKUP\n"
     inicio += "Hora: " + hora + "\n"
     inicio += "="*10 + "\n"
-    
     return inicio
 
+
+# Gera e printa a mensagem de fim de backup
 def termino(dia_inicio, hora_inicio, path_backup, path_log):
     final = "FIM DO BACKUP\n"
     final += ("Início: " + dia_inicio + " - " + hora_inicio)
@@ -49,20 +45,25 @@ def termino(dia_inicio, hora_inicio, path_backup, path_log):
     print(final)
     return final
 
-def backup_clone ():
+
+# Faz o backup "diferencial"
+def backup_clone (path_origem, path_destino, exclude, path_log):
     # disk = '/dev/sdc'                                             # pode ser usado para desmontar o disco
     hora_inicio = time.strftime('%H:%M:%S')
-    
-    path_log = gera_log('/home/estagiario01/testar-backup/logs/')   # retorna o caminho para o local onde o log será salvo
-    
-    path_origem = '~/testar-backup/arquivos-teste/'
-    path_destino = '~/testar-backup/backups/'
-    exclude = ('*.log', '*.tmp', '.recycle')
-    backup, path_backup = gera_backup(path_origem, path_destino, exclude)   # retorna um vetor com os parametro para fazer o backup "diferencial" via comando linux
-    
-    start = inicio(hora_inicio)
 
-    # Printar o Banner
+    # Transforma as strings em Path
+    path_origem = Path(path_origem).expanduser()
+    path_destino = Path(path_destino).expanduser()
+    path_log = Path(path_log).expanduser()
+
+    # Retorna o caminho para o local onde o log sera salvo
+    path_log = gera_log(path_log)
+
+    # Retorna um vetor com os parametro para fazer o backup "diferencial" via comando linux
+    backup, path_backup = gera_backup(path_origem, path_destino, exclude)
+    
+    # Printar o Banner no arquivo de log
+    start = inicio(hora_inicio)
     l = open(path_log, 'w')
     l.write(start)
     l.close()
@@ -70,7 +71,6 @@ def backup_clone ():
     # Monta todos os discos presentes no fstab
     mount = ['mount', '-a']
     resultado_mount = subprocess.run(mount)
-
     if resultado_mount.returncode != 0:
         print("Erro: falha ao montar os discos!")
         return
@@ -83,6 +83,7 @@ def backup_clone ():
             stderr=log
         )
 
+    #Verifica se o backup funcionou
     if resultado.returncode == 0:
         print("Backup realizado com sucesso!")
     else:
@@ -95,5 +96,11 @@ def backup_clone ():
     r.write(final)
     r.close()
 
-backup_clone()
+
+if (__name__ == "__main__"):
+    log = '/home/estagiario01/testar-backup/logs/'
+    origem = '~/testar-backup/arquivos-teste/'
+    destino = '~/testar-backup/backups/'
+    exclude = ('*.log', '*.tmp', '.recycle')
+    backup_clone(origem, destino, exclude, log)
     
