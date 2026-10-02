@@ -1,20 +1,44 @@
 import time
 import subprocess
 from pathlib import Path
+import argparse
 
+
+# Função para receber os argumentos via linha de comando
+def receber_argumentos():
+    parser = argparse.ArgumentParser(
+        description='Sistema de Backup Full'
+    )
+    parser.add_argument(
+        'origem',
+        help="Diretório que será copiado."
+    )
+    parser.add_argument(
+        'destino',
+        help="Diretório onde o backup será armazenado."
+    )
+    parser.add_argument(
+        'log',
+        help="Diretório onde os logs serão armazenados."
+    )
+    parser.add_argument(
+        '-e',
+        '--exclude',
+        nargs='*',
+        default=[],
+        help='Arquivos ou diretórios que serão ignorados do backup.'
+    )
+    return parser.parse_args()
 
 # Constroi o vetor para fazer o backup via subprocess.run()
-def gera_backup (path_origem, path_destino, exclude):    
+def gera_backup (path_origem, path_destino, exclude):
     date = (time.strftime("%Y-%m-%d"))
     opts = '-Cravzp'
-    excludes = (
-        '--exclude="%s"' % item
-        for item in exclude
-    )
 
     # Monta o vetor
     backup = ['rsync', opts]
-    backup.extend(excludes)
+    for item in exclude:
+        backup.append(f"--exclude={item}")
     backup.extend([path_origem, path_destino])
     return backup, path_destino
 
@@ -98,9 +122,10 @@ def backup_clone (path_origem, path_destino, exclude, path_log):
 
 
 if (__name__ == "__main__"):
-    log = '/home/estagiario01/testar-backup/logs/'
-    origem = '~/testar-backup/arquivos-teste/'
-    destino = '~/testar-backup/backups/'
-    exclude = ('*.log', '*.tmp', '.recycle')
-    backup_clone(origem, destino, exclude, log)
+    # log = '/home/estagiario01/testar-backup/logs/'
+    # origem = '~/testar-backup/arquivos-teste/'
+    # destino = '~/testar-backup/backups/'
+    # exclude = ('*.log', '*.tmp', '.recycle')
+    args = receber_argumentos()
+    backup_clone(args.origem, args.destino, args.exclude, args.log)
     

@@ -2,6 +2,28 @@ import time
 import subprocess
 from pathlib import Path
 import tarfile
+import argparse
+
+
+# Função para receber os argumentos via linha de comando
+def receber_argumentos():
+    parser = argparse.ArgumentParser(
+        description='Sistema de Backup Full'
+    )
+    parser.add_argument(
+        'origem',
+        help="Diretório que será copiado."
+    )
+    parser.add_argument(
+        'destino',
+        help="Diretório onde o backup será armazenado."
+    )
+    parser.add_argument(
+        'log',
+        help="Diretório onde os logs serão armazenados."
+    )
+    return parser.parse_args()
+
 
 # Constroi o arquivo e path de backup e rotorna
 def gera_backup(origem, destino):
@@ -109,7 +131,8 @@ def backup_full(origem, destino, destino_log):
 
 
 if (__name__ == "__main__"):
-    destino_log = '/home/estagiario01/testar-backup/logs/'
-    origem = '~/testar-backup/arquivos-teste/'
-    destino = '~/testar-backup/backups/'
-    backup_full(origem, destino, destino_log)
+    # origem = '~/testar-backup/arquivos-teste/'
+    # destino = '~/testar-backup/backups/'
+    # log = '/home/estagiario01/testar-backup/logs/'
+    args = receber_argumentos()
+    backup_full(args.origem, args.destino, args.log)
