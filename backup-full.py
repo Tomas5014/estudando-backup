@@ -1,6 +1,7 @@
 import time
 import subprocess
 from pathlib import Path
+import tarfile
 
 # Constrói o arquivo e path de backup e rotorna
 def gera_backup(origem = '~/testar-backup/arquivos-teste/', destino = '~/testar-backup/backups/'):
@@ -49,6 +50,21 @@ def termino(dia_inicio, hora_inicio, path_backup, path_log):
     print(final)
     return final
 
+def verifica_backup (path_backup):
+    try:
+        with tarfile.open(str(path_backup), "r:gz") as arquivo:
+            membros = arquivo.getmembers()
+
+        if len(membros) > 0:
+            print("Integridade do backup verificada com sucesso!")
+            return True
+
+        print("Erro: Backup está vazio.")
+        return False
+    except (tarfile.TarError, EOFError, OSError) as erro:
+        print(f"Erro ao verificar o backup: {erro}")
+        return False
+
 # Cria os backups
 def backup_full():
     disk = '/dev/sdb'       # Define onde esta a particao que sera usada para guardar o backup
@@ -78,11 +94,13 @@ def backup_full():
         )
     if (resultado_backup.returncode == 0):
         if path_backup.exists() and path_backup.stat().st_size > 0:
-            print("Backup realizado com sucesso!")
-        else:
-            print("Erro: Arquivo de backup inválido ou não encontrado")
+            
+            if verifica_backup(path_backup):
+                print("Backup realizado com sucesso!")
+            else:
+                print("Backup criado, mas falhou na verificação.")
     else:
-        print("Erro: falha ao realizar backup")
+        print("Erro: falha ao executar backup")
 
     # Printa o final e relatório
     dia_incio = (time.strftime("%d-%m-%Y"))
@@ -91,4 +109,5 @@ def backup_full():
     r.write(final)
     r.close()
 
+# backup_full()
 backup_full()
