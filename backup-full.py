@@ -101,9 +101,10 @@ def backup_full(origem, destino, destino_log):
     # disk = '/dev/sdb'       # Define onde esta a particao que sera usada para guardar o backup
 
     # Transformar string em Path
-    origem = Path(origem).expanduser()
-    destino = Path(destino).expanduser()
-    destino_log = Path(destino_log).expanduser()
+    origem = Path(origem).expanduser().resolve()
+    destino = Path(destino).expanduser().resolve()
+    destino_log = Path(destino_log).expanduser().resolve()
+
 
     # Verificar a existencia e se de fato é diretório (origem):
     if(not( verificar_existencia_diretorio(origem))):
@@ -123,11 +124,24 @@ def backup_full(origem, destino, destino_log):
         print(f"Erro: log não é um diretório: {destino_log}")
         return False
 
+    # Verificar se um dos destinos é igual ou contido na origem.
+    if (destino == origem):
+        print("Erro: origem e destino não podem ser o mesmo diretório.")
+        return False
+    if (destino.is_relative_to(origem)):
+        print("Erro: o destino não pode estar dentro do diretório de origem.")
+        return False
+    if (destino_log == origem):
+        print("Erro: origem e log não podem ser o mesmo diretório")
+        return False
+    if(destino_log.is_relative_to(origem)):
+        print("Erro: o diretório de logs nao pode estar dentro da origem.")
+
+
     # Cria os diretórios de destino, caso necessário.
     destino.mkdir(parents=True, exist_ok=True)
     destino_log.mkdir(parents=True, exist_ok=True)
     
-
 
     hora_inicio = time.strftime("%H:%M:%S")
     path_log = gera_log(destino_log)

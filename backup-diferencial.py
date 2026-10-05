@@ -39,7 +39,7 @@ def receber_argumentos():
     return parser.parse_args()
 
 # Constroi o vetor para fazer o backup via subprocess.run()
-def gera_backup (path_origem, path_destino, exclude):
+def gera_backup (origem, destino, exclude):
     date = (time.strftime("%Y-%m-%d"))
     opts = '-Cravzp'
 
@@ -47,16 +47,16 @@ def gera_backup (path_origem, path_destino, exclude):
     backup = ['rsync', opts]
     for item in exclude:
         backup.append(f"--exclude={item}")
-    backup.extend([path_origem, path_destino])
-    return backup, path_destino
+    backup.extend([origem, destino])
+    return backup, destino
 
 
 # Gera o caminho para o log de backup
-def gera_log(path_log):
+def gera_log(destino_log):
     date = (time.strftime("%Y-%m-%d"))
     logfile = '%s-backup-rsync.txt' % date
-    path_log = path_log / logfile
-    return path_log
+    destino_log = destino_log / logfile
+    return destino_log
 
 
 # Gera a mensagem de inicio do backup para o arquivo de log
@@ -69,10 +69,10 @@ def inicio(hora):
 
 
 # Gera e printa a mensagem de fim de backup
-def termino(dia_inicio, hora_inicio, path_backup, path_log):
+def termino(dia_inicio, hora_inicio, path_backup, destino_log):
     final = "FIM DO BACKUP\n"
     final += ("Início: " + dia_inicio + " - " + hora_inicio)
-    final += ("\nLOG FILE: " + str(path_log))
+    final += ("\nLOG FILE: " + str(destino_log))
     final += ("\nBACKUP FILE: " + str(path_backup))
     print(final)
     return final
@@ -89,46 +89,59 @@ def verificar_se_eh_diretorio (diretorio):
     return True
 
 # Faz o backup "diferencial"
-def backup_clone (path_origem, path_destino, exclude, path_log):
+def backup_clone (origem, destino, exclude, destino_log):
     # disk = '/dev/sdc'                                             # pode ser usado para desmontar o disco
     hora_inicio = time.strftime('%H:%M:%S')
 
     # Transforma as strings em Path
-    path_origem = Path(path_origem).expanduser()
-    path_destino = Path(path_destino).expanduser()
-    path_log = Path(path_log).expanduser()
+    origem = Path(origem).expanduser().resolve()
+    destino = Path(destino).expanduser().resolve()
+    destino_log = Path(destino_log).expanduser().resolve()
 
     # Verificar a existencia e se de fato é diretório (origem):
-    if(not( verificar_existencia_diretorio(path_origem))):
-        print(f"Erro: origem não existe: {path_origem}")
+    if(not( verificar_existencia_diretorio(origem))):
+        print(f"Erro: origem não existe: {origem}")
         return False
-    if not(verificar_se_eh_diretorio(path_origem)):
-        print(f"Erro: origem não é um diretório: {path_origem}")
+    if not(verificar_se_eh_diretorio(origem)):
+        print(f"Erro: origem não é um diretório: {origem}")
         return False
 
     # Verifica se existe e se não é diretório. Se não existe, vou criar o diretório.
-    if(verificar_existencia_diretorio(path_destino) and 
-    not verificar_se_eh_diretorio(path_destino)):
-        print(f"Erro: destino não é um diretório: {path_destino}")
+    if(verificar_existencia_diretorio(destino) and 
+    not verificar_se_eh_diretorio(destino)):
+        print(f"Erro: destino não é um diretório: {destino}")
         return False
-    if(verificar_existencia_diretorio(path_log) and 
-    not verificar_se_eh_diretorio(path_log)):
-        print(f"Erro: log não é um diretório: {path_log}")
+    if(verificar_existencia_diretorio(destino_log) and 
+    not verificar_se_eh_diretorio(destino_log)):
+        print(f"Erro: log não é um diretório: {destino_log}")
         return False
+
+    # Verificar se um dos destinos é igual ou contido na origem.
+    if (destino == origem):
+        print("Erro: origem e destino não podem ser o mesmo diretório.")
+        return False
+    if (destino.is_relative_to(origem)):
+        print("Erro: o destino não pode estar dentro do diretório de origem.")
+        return False
+    if (destino_log == origem):
+        print("Erro: origem e log não podem ser o mesmo diretório")
+        return False
+    if(destino_log.is_relative_to(origem)):
+        print("Erro: o diretório de logs nao pode estar dentro da origem.")
 
     # Cria os diretórios de destino, caso necessário.
-    path_destino.mkdir(parents=True, exist_ok=True)
-    path_log.mkdir(parents=True, exist_ok=True)
+    destino.mkdir(parents=True, exist_ok=True)
+    destino_log.mkdir(parents=True, exist_ok=True)
 
     # Retorna o caminho para o local onde o log sera salvo
-    path_log = gera_log(path_log)
+    destino_log = gera_log(destino_log)
 
     # Retorna um vetor com os parametro para fazer o backup "diferencial" via comando linux
-    backup, path_backup = gera_backup(path_origem, path_destino, exclude)
+    backup, path_backup = gera_backup(origem, destino, exclude)
     
     # Printar o Banner no arquivo de log
     start = inicio(hora_inicio)
-    l = open(path_log, 'w')
+    l = open(destino_log, 'w')
     l.write(start)
     l.close()
 
@@ -140,7 +153,7 @@ def backup_clone (path_origem, path_destino, exclude, path_log):
         return
 
     # Roda o backup
-    with open(path_log, 'a') as log:
+    with open(destino_log, 'a') as log:
         resultado = subprocess.run(
             backup,
             stdout=log,
@@ -155,8 +168,8 @@ def backup_clone (path_origem, path_destino, exclude, path_log):
 
     # Printa o final e relatorio
     dia_inicio = (time.strftime("%d-%m-%Y"))
-    final = termino(dia_inicio, hora_inicio, path_backup, path_log)
-    r = open(path_log, 'a')
+    final = termino(dia_inicio, hora_inicio, path_backup, destino_log)
+    r = open(destino_log, 'a')
     r.write(final)
     r.close()
 
