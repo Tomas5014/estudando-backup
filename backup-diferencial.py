@@ -10,7 +10,7 @@ import time
 import subprocess
 from pathlib import Path
 import argparse
-from utils import inicio, verificar_se_eh_diretorio, verificar_existencia_diretorio, termino, gera_log
+from utils import inicio, termino, gera_log, validar_diretorios
 
 # Função para receber os argumentos via linha de comando
 def receber_argumentos():
@@ -61,43 +61,18 @@ def backup_clone (origem, destino, exclude, destino_log):
     destino = Path(destino).expanduser().resolve()
     destino_log = Path(destino_log).expanduser().resolve()
 
-    # Verificar a existencia e se de fato é diretório (origem):
-    if(not( verificar_existencia_diretorio(origem))):
-        print(f"Erro: origem não existe: {origem}")
+    # As necessidades dos três diretórios fornecidos pelo usuário (existência e se é diretório)
+    validacao_diretorios, msg_erro = validar_diretorios(origem, destino, destino_log)
+    if (validacao_diretorios == False):
+        print(f"Erro: {msg_erro}")
         return False
-    if not(verificar_se_eh_diretorio(origem)):
-        print(f"Erro: origem não é um diretório: {origem}")
-        return False
-
-    # Verifica se existe e se não é diretório. Se não existe, vou criar o diretório.
-    if(verificar_existencia_diretorio(destino) and 
-    not verificar_se_eh_diretorio(destino)):
-        print(f"Erro: destino não é um diretório: {destino}")
-        return False
-    if(verificar_existencia_diretorio(destino_log) and 
-    not verificar_se_eh_diretorio(destino_log)):
-        print(f"Erro: log não é um diretório: {destino_log}")
-        return False
-
-    # Verificar se um dos destinos é igual ou contido na origem.
-    if (destino == origem):
-        print("Erro: origem e destino não podem ser o mesmo diretório.")
-        return False
-    if (destino.is_relative_to(origem)):
-        print("Erro: o destino não pode estar dentro do diretório de origem.")
-        return False
-    if (destino_log == origem):
-        print("Erro: origem e log não podem ser o mesmo diretório")
-        return False
-    if(destino_log.is_relative_to(origem)):
-        print("Erro: o diretório de logs nao pode estar dentro da origem.")
 
     # Cria os diretórios de destino, caso necessário.
     destino.mkdir(parents=True, exist_ok=True)
     destino_log.mkdir(parents=True, exist_ok=True)
 
     # Retorna o caminho para o local onde o log sera salvo
-    destino_log = gera_log(destino_log)
+    destino_log = gera_log(destino_log, "rsync")
 
     # Retorna um vetor com os parametro para fazer o backup "diferencial" via comando linux
     backup, path_backup = gera_backup(origem, destino, exclude)

@@ -10,7 +10,7 @@ import subprocess
 from pathlib import Path
 import tarfile
 import argparse
-from utils import inicio, verificar_se_eh_diretorio, verificar_existencia_diretorio, termino, gera_log
+from utils import inicio, validar_diretorios, termino, gera_log
 
 
 # Função para receber os argumentos via linha de comando
@@ -59,6 +59,21 @@ def verifica_backup (path_backup):
         print(f"Erro ao verificar o backup: {erro}")
         return False
 
+def validar_backup_full (resultado_backup, path_backup):
+    if resultado_backup.returncode != 0:
+        return False, f"falha ao executar backup."
+
+    if not path_backup.exists():
+        return False, f"arquivo de backup não foi criado."
+
+    if path_backup.stat().st_size == 0:
+        return False, f"arquivo de backup está vazio."
+
+    if not verifica_backup(path_backup):
+        return False, f"backup criado, mas falhou na verificação."
+
+    return True, f"Backup realizado com sucesso!"
+
 # Cria os backups
 def backup_full(origem, destino, destino_log):
     # disk = '/dev/sdb'       # Define onde esta a particao que sera usada para guardar o backup
@@ -68,38 +83,11 @@ def backup_full(origem, destino, destino_log):
     destino = Path(destino).expanduser().resolve()
     destino_log = Path(destino_log).expanduser().resolve()
 
-
-    # Verificar a existencia e se de fato é diretório (origem):
-    if(not( verificar_existencia_diretorio(origem))):
-        print(f"Erro: origem não existe: {origem}")
+    # As necessidades dos três diretórios fornecidos pelo usuário (existência e se é diretório)
+    validacao_diretorios, msg_erro = validar_diretorios(origem, destino, destino_log)
+    if (not validacao_diretorios):
+        print(f"Erro: {msg_erro}")
         return False
-    if not(verificar_se_eh_diretorio(origem)):
-        print(f"Erro: origem não é um diretório: {origem}")
-        return False
-
-    # Verifica se existe e se não é diretório. Se não existe, vou criar o diretório.
-    if(verificar_existencia_diretorio(destino) and 
-    not verificar_se_eh_diretorio(destino)):
-        print(f"Erro: destino não é um diretório: {destino}")
-        return False
-    if(verificar_existencia_diretorio(destino_log) and 
-    not verificar_se_eh_diretorio(destino_log)):
-        print(f"Erro: log não é um diretório: {destino_log}")
-        return False
-
-    # Verificar se um dos destinos é igual ou contido na origem.
-    if (destino == origem):
-        print("Erro: origem e destino não podem ser o mesmo diretório.")
-        return False
-    if (destino.is_relative_to(origem)):
-        print("Erro: o destino não pode estar dentro do diretório de origem.")
-        return False
-    if (destino_log == origem):
-        print("Erro: origem e log não podem ser o mesmo diretório")
-        return False
-    if(destino_log.is_relative_to(origem)):
-        print("Erro: o diretório de logs nao pode estar dentro da origem.")
-
 
     # Cria os diretórios de destino, caso necessário.
     destino.mkdir(parents=True, exist_ok=True)
@@ -107,7 +95,7 @@ def backup_full(origem, destino, destino_log):
     
 
     hora_inicio = time.strftime("%H:%M:%S")
-    path_log = gera_log(destino_log)
+    path_log = gera_log(destino_log, "full")
     backup, path_backup = gera_backup(origem, destino)
     start = inicio(hora_inicio)
 
@@ -130,15 +118,15 @@ def backup_full(origem, destino, destino_log):
             stdout=log,     # Imprime a saida, em caso de sucesso, no arquivo de log.
             stderr=log      # Imprime o erro, em caso de falha, no arquivo de log.
         )
-    if (resultado_backup.returncode == 0):
-        if path_backup.exists() and path_backup.stat().st_size > 0:
-            
-            if verifica_backup(path_backup):
-                print("Backup realizado com sucesso!")
-            else:
-                print("Backup criado, mas falhou na verificação.")
+
+    validacao_backup, msg_validacao_backup = validar_backup_full(resultado_backup, path_backup)
+
+    # Validar se o backup full foi feito corretamente
+    if (validacao_backup):
+        print(msg_validacao_backup)
     else:
-        print("Erro: falha ao executar backup")
+        print(f"Erro: {msg_validacao_backup}")
+        return False
 
     # Printa o final e relatório
     dia_incio = (time.strftime("%d-%m-%Y"))
