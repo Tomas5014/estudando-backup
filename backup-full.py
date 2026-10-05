@@ -86,15 +86,13 @@ def verifica_backup (path_backup):
         return False
 
 
-def verificar_existencia_diretorio (diretorio, nome_diretorio):
+def verificar_existencia_diretorio (diretorio):
     if not diretorio.exists():
-        print(f"Erro: diretorio de {nome_diretorio} não existe: {diretorio}")
         return False
     return True
 
-def verificar_se_eh_diretorio (diretorio, nome_diretorio):
+def verificar_se_eh_diretorio (diretorio):
     if not diretorio.is_dir():
-        print(f"Erro: {nome_diretorio} não é um diretório: {diretorio}")
         return False
     return True
 
@@ -107,14 +105,27 @@ def backup_full(origem, destino, destino_log):
     destino = Path(destino).expanduser()
     destino_log = Path(destino_log).expanduser()
 
-    # Verificar a existencia e se de fato é diretório todos os diretórios:
-    if(not( verificar_existencia_diretorio(origem, "origem") and 
-            verificar_se_eh_diretorio(origem, "origem") and
-            verificar_existencia_diretorio(destino, "destino") and 
-            verificar_se_eh_diretorio(destino, "destino") and
-            verificar_existencia_diretorio(destino_log, "log") and 
-            verificar_se_eh_diretorio(destino_log, "log"))):
+    # Verificar a existencia e se de fato é diretório (origem):
+    if(not( verificar_existencia_diretorio(origem))):
+        print(f"Erro: origem não existe: {origem}")
         return False
+    if not(verificar_se_eh_diretorio(origem)):
+        print(f"Erro: origem não é um diretório: {origem}")
+        return False
+
+    # Verifica se existe e se não é diretório. Se não existe, vou criar o diretório.
+    if(verificar_existencia_diretorio(destino) and 
+    not verificar_se_eh_diretorio(destino)):
+        print(f"Erro: destino não é um diretório: {destino}")
+        return False
+    if(verificar_existencia_diretorio(destino_log) and 
+    not verificar_se_eh_diretorio(destino_log)):
+        print(f"Erro: log não é um diretório: {destino_log}")
+        return False
+
+    # Cria os diretórios de destino, caso necessário.
+    destino.mkdir(parents=True, exist_ok=True)
+    destino_log.mkdir(parents=True, exist_ok=True)
     
 
 

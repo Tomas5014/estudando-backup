@@ -78,15 +78,13 @@ def termino(dia_inicio, hora_inicio, path_backup, path_log):
     return final
 
 
-def verificar_existencia_diretorio (diretorio, nome_diretorio):
+def verificar_existencia_diretorio (diretorio):
     if not diretorio.exists():
-        print(f"Erro: diretorio de {nome_diretorio} não existe: {diretorio}")
         return False
     return True
 
-def verificar_se_eh_diretorio (diretorio, nome_diretorio):
+def verificar_se_eh_diretorio (diretorio):
     if not diretorio.is_dir():
-        print(f"Erro: {nome_diretorio} não é um diretório: {diretorio}")
         return False
     return True
 
@@ -100,14 +98,27 @@ def backup_clone (path_origem, path_destino, exclude, path_log):
     path_destino = Path(path_destino).expanduser()
     path_log = Path(path_log).expanduser()
 
-    # Verificar a existencia e se de fato é diretório todos os diretórios:
-    if(not( verificar_existencia_diretorio(path_origem, "origem") and 
-            verificar_se_eh_diretorio(path_origem, "origem") and
-            verificar_existencia_diretorio(path_destino, "destino") and 
-            verificar_se_eh_diretorio(path_destino, "destino") and
-            verificar_existencia_diretorio(path_log, "log") and 
-            verificar_se_eh_diretorio(path_log, "log"))):
+    # Verificar a existencia e se de fato é diretório (origem):
+    if(not( verificar_existencia_diretorio(path_origem))):
+        print(f"Erro: origem não existe: {path_origem}")
         return False
+    if not(verificar_se_eh_diretorio(path_origem)):
+        print(f"Erro: origem não é um diretório: {path_origem}")
+        return False
+
+    # Verifica se existe e se não é diretório. Se não existe, vou criar o diretório.
+    if(verificar_existencia_diretorio(path_destino) and 
+    not verificar_se_eh_diretorio(path_destino)):
+        print(f"Erro: destino não é um diretório: {path_destino}")
+        return False
+    if(verificar_existencia_diretorio(path_log) and 
+    not verificar_se_eh_diretorio(path_log)):
+        print(f"Erro: log não é um diretório: {path_log}")
+        return False
+
+    # Cria os diretórios de destino, caso necessário.
+    path_destino.mkdir(parents=True, exist_ok=True)
+    path_log.mkdir(parents=True, exist_ok=True)
 
     # Retorna o caminho para o local onde o log sera salvo
     path_log = gera_log(path_log)
