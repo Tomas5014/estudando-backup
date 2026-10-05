@@ -10,7 +10,7 @@ import time
 import subprocess
 from pathlib import Path
 import argparse
-
+from utils import inicio, verificar_se_eh_diretorio, verificar_existencia_diretorio, termino, gera_log
 
 # Função para receber os argumentos via linha de comando
 def receber_argumentos():
@@ -50,43 +50,6 @@ def gera_backup (origem, destino, exclude):
     backup.extend([origem, destino])
     return backup, destino
 
-
-# Gera o caminho para o log de backup
-def gera_log(destino_log):
-    date = (time.strftime("%Y-%m-%d"))
-    logfile = '%s-backup-rsync.txt' % date
-    destino_log = destino_log / logfile
-    return destino_log
-
-
-# Gera a mensagem de inicio do backup para o arquivo de log
-def inicio(hora):
-    inicio = "="*10 + "\n"
-    inicio += "INÍCIO DO BACKUP\n"
-    inicio += "Hora: " + hora + "\n"
-    inicio += "="*10 + "\n"
-    return inicio
-
-
-# Gera e printa a mensagem de fim de backup
-def termino(dia_inicio, hora_inicio, path_backup, destino_log):
-    final = "FIM DO BACKUP\n"
-    final += ("Início: " + dia_inicio + " - " + hora_inicio)
-    final += ("\nLOG FILE: " + str(destino_log))
-    final += ("\nBACKUP FILE: " + str(path_backup))
-    print(final)
-    return final
-
-
-def verificar_existencia_diretorio (diretorio):
-    if not diretorio.exists():
-        return False
-    return True
-
-def verificar_se_eh_diretorio (diretorio):
-    if not diretorio.is_dir():
-        return False
-    return True
 
 # Faz o backup "diferencial"
 def backup_clone (origem, destino, exclude, destino_log):
