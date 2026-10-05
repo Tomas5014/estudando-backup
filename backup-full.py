@@ -1,3 +1,10 @@
+"""
+    python3 backup-full.py \
+        ~/testar-backup/arquivos-teste/ \
+        ~/testar-backup/backups/ \
+        ~/testar-backup/logs/
+"""
+
 import time
 import subprocess
 from pathlib import Path
@@ -79,6 +86,18 @@ def verifica_backup (path_backup):
         return False
 
 
+def verificar_existencia_diretorio (diretorio, nome_diretorio):
+    if not diretorio.exists():
+        print(f"Erro: diretorio de {nome_diretorio} não existe: {diretorio}")
+        return False
+    return True
+
+def verificar_se_eh_diretorio (diretorio, nome_diretorio):
+    if not diretorio.is_dir():
+        print(f"Erro: {nome_diretorio} não é um diretório: {diretorio}")
+        return False
+    return True
+
 # Cria os backups
 def backup_full(origem, destino, destino_log):
     # disk = '/dev/sdb'       # Define onde esta a particao que sera usada para guardar o backup
@@ -87,6 +106,17 @@ def backup_full(origem, destino, destino_log):
     origem = Path(origem).expanduser()
     destino = Path(destino).expanduser()
     destino_log = Path(destino_log).expanduser()
+
+    # Verificar a existencia e se de fato é diretório todos os diretórios:
+    if(not( verificar_existencia_diretorio(origem, "origem") and 
+            verificar_se_eh_diretorio(origem, "origem") and
+            verificar_existencia_diretorio(destino, "destino") and 
+            verificar_se_eh_diretorio(destino, "destino") and
+            verificar_existencia_diretorio(destino_log, "log") and 
+            verificar_se_eh_diretorio(destino_log, "log"))):
+        return False
+    
+
 
     hora_inicio = time.strftime("%H:%M:%S")
     path_log = gera_log(destino_log)

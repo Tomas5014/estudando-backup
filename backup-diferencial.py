@@ -1,3 +1,11 @@
+"""
+    python3 backup-diferencial.py \
+        ~/testar-backup/arquivos-teste/ \
+        ~/testar-backup/backups/ \
+        ~/testar-backup/logs/ \
+        --exclude "*.log" "*.tmp" ".recycle"
+"""
+
 import time
 import subprocess
 from pathlib import Path
@@ -70,6 +78,18 @@ def termino(dia_inicio, hora_inicio, path_backup, path_log):
     return final
 
 
+def verificar_existencia_diretorio (diretorio, nome_diretorio):
+    if not diretorio.exists():
+        print(f"Erro: diretorio de {nome_diretorio} não existe: {diretorio}")
+        return False
+    return True
+
+def verificar_se_eh_diretorio (diretorio, nome_diretorio):
+    if not diretorio.is_dir():
+        print(f"Erro: {nome_diretorio} não é um diretório: {diretorio}")
+        return False
+    return True
+
 # Faz o backup "diferencial"
 def backup_clone (path_origem, path_destino, exclude, path_log):
     # disk = '/dev/sdc'                                             # pode ser usado para desmontar o disco
@@ -79,6 +99,15 @@ def backup_clone (path_origem, path_destino, exclude, path_log):
     path_origem = Path(path_origem).expanduser()
     path_destino = Path(path_destino).expanduser()
     path_log = Path(path_log).expanduser()
+
+    # Verificar a existencia e se de fato é diretório todos os diretórios:
+    if(not( verificar_existencia_diretorio(path_origem, "origem") and 
+            verificar_se_eh_diretorio(path_origem, "origem") and
+            verificar_existencia_diretorio(path_destino, "destino") and 
+            verificar_se_eh_diretorio(path_destino, "destino") and
+            verificar_existencia_diretorio(path_log, "log") and 
+            verificar_se_eh_diretorio(path_log, "log"))):
+        return False
 
     # Retorna o caminho para o local onde o log sera salvo
     path_log = gera_log(path_log)
@@ -128,4 +157,4 @@ if (__name__ == "__main__"):
     # exclude = ('*.log', '*.tmp', '.recycle')
     args = receber_argumentos()
     backup_clone(args.origem, args.destino, args.exclude, args.log)
-    
+
