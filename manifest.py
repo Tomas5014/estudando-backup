@@ -29,7 +29,7 @@ def listar_arquivos(origem):
             arquivos.append({
                 'nome': str(caminho_relativo), 
                 'tamanho': info.st_size, 
-                'modificacao': info.st_mtime
+                'modificado': info.st_mtime
             })
     
     return arquivos
@@ -54,13 +54,58 @@ def carregar_manifest(caminho):
         dados = json.load(arquivo)
 
     return dados
-        
+
+def indexar_arquivos(arquivos):
+    indice = {}
+
+    for arquivo in arquivos:
+        indice[arquivo["nome"]] = arquivo
+
+    return indice
+
+def comparar_manifest(manifest_antigo, arquivos_atuais):
+    arquivos_antigos = manifest_antigo["arquivos"]
+
+    antigos = indexar_arquivos(arquivos_antigos)
+    atuais = indexar_arquivos(arquivos_atuais)
+
+    novos = []
+    alterados = []
+    removidos = []
+
+    # Verifica se há arquivos alterados ou novos em atuais
+    for nome, arquivo_atual in atuais.items():
+        if nome not in antigos:
+            novos.append(arquivo_atual)
+        else:
+            data_atual = arquivo_atual["modificado"]
+            data_antiga = antigos[nome]["modificado"]
+            tamanho_atual = arquivo_atual["tamanho"]
+            tamanho_antigo = antigos[nome]["tamanho"]
+            if((tamanho_antigo != tamanho_atual) or (data_antiga != data_atual)):
+                alterados.append(arquivo_atual)
+
+    # Verifica se há arquivos removidos em antigos.
+    for nome, arquivo_antigo in antigos.items():
+        if nome not in atuais:
+            removidos.append(arquivo_antigo)
+
+    return{
+        "novos": novos,
+        "alterados": alterados,
+        "removidos": removidos,
+    }
+
+
 if __name__ == "__main__":
     
-    manifest = gerar_manifest("~/testar-backup/arquivos-teste", "full")
+    # manifest = gerar_manifest("~/testar-backup/arquivos-teste", "full")
 
-    salvar_manifest(manifest, "manifest.json")
+    # salvar_manifest(manifest, "manifest-2.json")
 
-    manifest_carregado = carregar_manifest("manifest.json")
+    manifesto_antigo = carregar_manifest("/home/estagiario01/repos/estudando-backup/manifest.json")
+    manifesto_novo = carregar_manifest("/home/estagiario01/repos/estudando-backup/manifest-2.json")
 
-    print(manifest_carregado)
+    resultados = comparar_manifest(manifesto_antigo, manifesto_novo["arquivos"])
+
+    print(resultados)
