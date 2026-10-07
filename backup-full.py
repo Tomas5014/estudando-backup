@@ -2,7 +2,6 @@
     python3 backup-full.py \
         ~/testar-backup/arquivos-teste/ \
         ~/testar-backup/backups/ \
-        ~/testar-backup/logs/
 """
 
 import time
@@ -26,10 +25,7 @@ def receber_argumentos():
         'destino',
         help="Diretório onde o backup será armazenado."
     )
-    parser.add_argument(
-        'log',
-        help="Diretório onde os logs serão armazenados."
-    )
+
     return parser.parse_args()
 
 
@@ -75,13 +71,13 @@ def validar_backup_full (resultado_backup, path_backup):
     return True, f"Backup realizado com sucesso!"
 
 # Cria os backups
-def backup_full(origem, destino, destino_log):
+def backup_full(origem, destino):
     # disk = '/dev/sdb'       # Define onde esta a particao que sera usada para guardar o backup
 
     # Transformar string em Path
     origem = Path(origem).expanduser().resolve()
     destino = Path(destino).expanduser().resolve()
-    destino_log = Path(destino_log).expanduser().resolve()
+    destino_log = destino / "logs"
 
     # As necessidades dos três diretórios fornecidos pelo usuário (existência e se é diretório)
     validacao_diretorios, msg_erro = validar_diretorios(origem, destino, destino_log)
@@ -139,6 +135,5 @@ def backup_full(origem, destino, destino_log):
 if (__name__ == "__main__"):
     # origem = '~/testar-backup/arquivos-teste/'
     # destino = '~/testar-backup/backups/'
-    # log = '/home/estagiario01/testar-backup/logs/'
     args = receber_argumentos()
-    backup_full(args.origem, args.destino, args.log)
+    backup_full(args.origem, args.destino)

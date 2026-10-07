@@ -1,7 +1,7 @@
 from pathlib import Path
 import json
 import time
-
+from teste import criar_backup_diferencial
 
 def salvar_manifest(dados, destino):
     with open(destino, "w", encoding='utf-8') as arquivo:
@@ -46,6 +46,20 @@ def gerar_manifest(origem, tipo_backup):
         "arquivos": arquivos
     }
 
+    return manifest
+
+def gerar_manifest_diferencial(origem, diferencas, base_full):
+    origem = Path(origem).expanduser().resolve()
+    
+    manifest = {
+        "tipo": "diferencial",
+        "base_full": str(base_full),
+        "origem": str(origem),
+        "data": time.strftime("%d-%m-%Y %H:%M:%S"),
+        "novos": diferencas["novos"],
+        "alterados": diferencas["alterados"],
+        "removidos": diferencas["removidos"],
+    }
     return manifest
 
 
@@ -109,3 +123,13 @@ if __name__ == "__main__":
     resultados = comparar_manifest(manifesto_antigo, manifesto_novo["arquivos"])
 
     print(resultados)
+
+    destino = criar_backup_diferencial(manifesto_antigo["origem"], resultados, "diferencial.tar.gz")
+
+    manifesto_diferencial = gerar_manifest_diferencial(
+        manifesto_antigo["origem"],
+        resultados,
+        "manifest.json",
+    )
+
+    salvar_manifest(manifesto_diferencial, "manifest-diferencial.json")

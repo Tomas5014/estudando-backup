@@ -2,7 +2,6 @@
     python3 backup-diferencial.py \
         ~/testar-backup/arquivos-teste/ \
         ~/testar-backup/backups/ \
-        ~/testar-backup/logs/ \
         --exclude "*.log" "*.tmp" ".recycle"
 """
 
@@ -24,10 +23,6 @@ def receber_argumentos():
     parser.add_argument(
         'destino',
         help="Diretório onde o backup será armazenado."
-    )
-    parser.add_argument(
-        'log',
-        help="Diretório onde os logs serão armazenados."
     )
     parser.add_argument(
         '-e',
@@ -52,14 +47,14 @@ def gera_backup (origem, destino, exclude):
 
 
 # Faz o backup "diferencial"
-def backup_clone (origem, destino, exclude, destino_log):
+def backup_clone (origem, destino, exclude):
     # disk = '/dev/sdc'                                             # pode ser usado para desmontar o disco
     hora_inicio = time.strftime('%H:%M:%S')
 
     # Transforma as strings em Path
     origem = Path(origem).expanduser().resolve()
     destino = Path(destino).expanduser().resolve()
-    destino_log = Path(destino_log).expanduser().resolve()
+    destino_log = destino / "logs"
 
     # As necessidades dos três diretórios fornecidos pelo usuário (existência e se é diretório)
     validacao_diretorios, msg_erro = validar_diretorios(origem, destino, destino_log)
@@ -118,5 +113,5 @@ if (__name__ == "__main__"):
     # destino = '~/testar-backup/backups/'
     # exclude = ('*.log', '*.tmp', '.recycle')
     args = receber_argumentos()
-    backup_clone(args.origem, args.destino, args.exclude, args.log)
+    backup_clone(args.origem, args.destino, args.exclude)
 
