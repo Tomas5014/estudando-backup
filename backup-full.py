@@ -1,7 +1,7 @@
 """
     python3 backup-full.py \
         ~/testar-backup/arquivos-teste/ \
-        ~/testar-backup/backups/ \
+        ~/testar-backup/backups/ 
 """
 
 import time
@@ -10,6 +10,7 @@ from pathlib import Path
 import tarfile
 import argparse
 from utils import inicio, validar_diretorios, termino, gera_log
+import manifest
 
 
 # Função para receber os argumentos via linha de comando
@@ -124,12 +125,17 @@ def backup_full(origem, destino):
         print(f"Erro: {msg_validacao_backup}")
         return False
 
+
     # Printa o final e relatório
-    dia_incio = (time.strftime("%d-%m-%Y"))
+    dia_incio = (time.strftime("%Y-%m-%d"))
     final = termino(dia_incio, hora_inicio, path_backup, path_log)
     r = open(path_log, 'a')
     r.write(final)
     r.close()
+
+    destino_manifesto = destino / f"{dia_incio}-manifesto-full.json"
+    manifesto = manifest.gerar_manifest(origem, "backup_full")
+    manifest.salvar_manifest(manifesto, destino_manifesto)
 
 
 if (__name__ == "__main__"):
