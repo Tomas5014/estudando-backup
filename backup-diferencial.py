@@ -3,6 +3,9 @@
         ~/testar-backup/arquivos-teste/ \
         ~/testar-backup/backups/ \
         --exclude "*.log" "*.tmp" ".recycle"
+
+    python3 backup-diferencial.py ~/testar-backup/arquivos-teste/ ~/testar-backup/backups/
+                
 """
 
 import time
@@ -56,7 +59,7 @@ def criar_backup_diferencial(origem, diferencas, destino):
 # Faz o backup "diferencial"
 def backup_clone (origem, destino, exclude):
     # disk = '/dev/sdc'                                             # pode ser usado para desmontar o disco
-    hora_inicio = time.strftime('%H:%M:%S')
+    hora_inicio = time.strftime('%H-%M-%S')
     dia_inicio = (time.strftime("%Y-%m-%d"))
 
     # Transforma as strings em Path
@@ -84,12 +87,13 @@ def backup_clone (origem, destino, exclude):
     l.close()
 
     arquivos_atuais = manifest.listar_arquivos(origem)
-    manifesto_full = manifest.carregar_manifest("/home/estagiario01/testar-backup/backups/2026-10-07-manifesto-full.json")
+    caminho_manifest_full = manifest.encontrar_manifest_full_mais_recente(origem, destino)
+    manifesto_full = manifest.carregar_manifest(caminho_manifest_full)
     diferencas = manifest.comparar_manifest(manifesto_full, arquivos_atuais)
-    path_backup = destino / f"{dia_inicio}-backup-diferencial.tar.gz"
+    path_backup = destino / f"{dia_inicio}_{hora_inicio}-backup-diferencial.tar.gz"
     criar_backup_diferencial(origem, diferencas, path_backup)
-    manifesto_diferencial = manifest.gerar_manifest_diferencial(origem, diferencas, manifesto_full["origem"])
-    destino_manifesto = destino / f"{dia_inicio}-manifesto-diferencial.json"
+    manifesto_diferencial = manifest.gerar_manifest_diferencial(origem, diferencas, manifesto_full["origem"], dia_inicio, hora_inicio)
+    destino_manifesto = destino / f"{dia_inicio}_{hora_inicio}-manifesto-diferencial.json"
     manifest.salvar_manifest(manifesto_diferencial, destino_manifesto)
 
     # Printa o final e relatorio

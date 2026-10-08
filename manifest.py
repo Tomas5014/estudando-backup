@@ -1,8 +1,9 @@
 from pathlib import Path
 import json
 import time
-from teste import criar_backup_diferencial
 
+
+# Salva um manifest em um diretório destino
 def salvar_manifest(dados, destino):
     with open(destino, "w", encoding='utf-8') as arquivo:
         json.dump(
@@ -13,6 +14,7 @@ def salvar_manifest(dados, destino):
         )
 
 
+# Retorna um dicionário dos arquivos de um diretório
 def listar_arquivos(origem):
     origem = Path(origem).expanduser().resolve()
 
@@ -34,28 +36,32 @@ def listar_arquivos(origem):
     
     return arquivos
 
-def gerar_manifest(origem, tipo_backup):
+
+# Gera um manifest para um backup full
+def gerar_manifest_full(origem, data, hora):
 
     origem = Path(origem).expanduser().resolve()
     arquivos = listar_arquivos(origem)
     
     manifest = {
-        "tipo": tipo_backup,
+        "tipo": "backup_full",
         "origem": str(origem),
-        "data": time.strftime("%d-%m-%Y %H:%M:%S"),
+        "data": f"{data} {hora.replace("-",":")}",
         "arquivos": arquivos
     }
 
     return manifest
 
-def gerar_manifest_diferencial(origem, diferencas, base_full):
+
+# Gera um manifest para um backup diferencial
+def gerar_manifest_diferencial(origem, diferencas, base_full, data, hora):
     origem = Path(origem).expanduser().resolve()
     
     manifest = {
         "tipo": "diferencial",
         "base_full": str(base_full),
         "origem": str(origem),
-        "data": time.strftime("%d-%m-%Y %H:%M:%S"),
+        "data": f"{data} {hora.replace("-",":")}",
         "novos": diferencas["novos"],
         "alterados": diferencas["alterados"],
         "removidos": diferencas["removidos"],
@@ -63,12 +69,15 @@ def gerar_manifest_diferencial(origem, diferencas, base_full):
     return manifest
 
 
+# Carrega o json do manifesto em um dicionário
 def carregar_manifest(caminho):
     with open(caminho, "r", encoding="utf-8") as arquivo:
         dados = json.load(arquivo)
 
     return dados
 
+#Retorna um dicionário de arquivos onde o indicie é o nome do arquivo
+# Essa função será usada para facilitar a busca de um arquivo pelo nome sem tem que percorre-lo.
 def indexar_arquivos(arquivos):
     indice = {}
 
@@ -77,6 +86,9 @@ def indexar_arquivos(arquivos):
 
     return indice
 
+
+# Retorna todos os arquivos novos, modificados e removidos entre um manifesto 
+# e arquivos de um diretório.
 def comparar_manifest(manifest_antigo, arquivos_atuais):
     arquivos_antigos = manifest_antigo["arquivos"]
 
@@ -110,26 +122,24 @@ def comparar_manifest(manifest_antigo, arquivos_atuais):
         "removidos": removidos,
     }
 
+# Encontra o manifest do backup mais recente dentro do destino
+def encontrar_manifest_full_mais_recente(origem, destino):
+    destino = Path(destino).expanduser().resolve()
+    origem = Path(origem).expanduser().resolve()
 
-if __name__ == "__main__":
-    
-    # manifest = gerar_manifest("~/testar-backup/arquivos-teste", "full")
+    candidatos = []
 
-    # salvar_manifest(manifest, "manifest-2.json")
+    for caminho in destino.glob("*-manifesto-full.json"):
+        manifest = carregar_manifest(caminho)
+        if(
+            manifest["tipo"] == "backup_full"
+            and Path(manifest["origem"]).resolve() == origem
+        ):
+            candidatos.append(caminho)
 
-    manifesto_antigo = carregar_manifest("/home/estagiario01/repos/estudando-backup/manifest.json")
-    manifesto_novo = carregar_manifest("/home/estagiario01/repos/estudando-backup/manifest-2.json")
+    if not candidatos: return None
 
-    resultados = comparar_manifest(manifesto_antigo, manifesto_novo["arquivos"])
-
-    print(resultados)
-
-    destino = criar_backup_diferencial(manifesto_antigo["origem"], resultados, "diferencial.tar.gz")
-
-    manifesto_diferencial = gerar_manifest_diferencial(
-        manifesto_antigo["origem"],
-        resultados,
-        "manifest.json",
+    return max(
+        candidatos,
+        key=lambda caminho: caminho.stat().st_mtime
     )
-
-    salvar_manifest(manifesto_diferencial, "manifest-diferencial.json")

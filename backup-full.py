@@ -1,7 +1,5 @@
 """
-    python3 backup-full.py \
-        ~/testar-backup/arquivos-teste/ \
-        ~/testar-backup/backups/ 
+    python3 backup-full.py ~/testar-backup/arquivos-teste/ ~/testar-backup/backups/ 
 """
 
 import time
@@ -31,9 +29,9 @@ def receber_argumentos():
 
 
 # Constroi o arquivo e path de backup e rotorna
-def gera_backup(origem, destino):
+def gera_backup(origem, destino,data,hora):
     date = (time.strftime("%Y-%m-%d"))
-    nome_arquivo_backup = '%s-backup-full.tar.gz' % date
+    nome_arquivo_backup = f"{data}_{hora}-backup-full.tar.gz"
     path_destino = destino / nome_arquivo_backup                # Operador "/" junta caminhos
     backup = ['tar', 'czvf', path_destino, origem]
     return backup, path_destino
@@ -73,7 +71,8 @@ def validar_backup_full (resultado_backup, path_backup):
 
 # Cria os backups
 def backup_full(origem, destino):
-    # disk = '/dev/sdb'       # Define onde esta a particao que sera usada para guardar o backup
+    dia_incio = (time.strftime("%Y-%m-%d"))
+    hora_inicio = time.strftime("%H-%M-%S")
 
     # Transformar string em Path
     origem = Path(origem).expanduser().resolve()
@@ -90,10 +89,8 @@ def backup_full(origem, destino):
     destino.mkdir(parents=True, exist_ok=True)
     destino_log.mkdir(parents=True, exist_ok=True)
     
-
-    hora_inicio = time.strftime("%H:%M:%S")
     path_log = gera_log(destino_log, "full")
-    backup, path_backup = gera_backup(origem, destino)
+    backup, path_backup = gera_backup(origem, destino, dia_incio, hora_inicio)
     start = inicio(hora_inicio)
 
     # Printa o Banner
@@ -127,14 +124,13 @@ def backup_full(origem, destino):
 
 
     # Printa o final e relatório
-    dia_incio = (time.strftime("%Y-%m-%d"))
     final = termino(dia_incio, hora_inicio, path_backup, path_log)
     r = open(path_log, 'a')
     r.write(final)
     r.close()
 
-    destino_manifesto = destino / f"{dia_incio}-manifesto-full.json"
-    manifesto = manifest.gerar_manifest(origem, "backup_full")
+    destino_manifesto = destino / f"{dia_incio}_{hora_inicio}-manifesto-full.json"
+    manifesto = manifest.gerar_manifest_full(origem, dia_incio, hora_inicio)
     manifest.salvar_manifest(manifesto, destino_manifesto)
 
 
