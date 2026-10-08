@@ -9,12 +9,11 @@
 """
 
 import time
-import subprocess
 from pathlib import Path
 import argparse
-from utils import inicio, termino, gera_log, validar_diretorios
 import manifest
 import tarfile
+from utils import inicio, termino, gera_log, validar_diretorios
 
 # Função para receber os argumentos via linha de comando
 def receber_argumentos():
@@ -38,6 +37,7 @@ def receber_argumentos():
     )
     return parser.parse_args()
 
+# Cria o backup diferencial com os arquivos em diferenças
 def criar_backup_diferencial(origem, diferencas, destino):
     origem = Path(origem).expanduser().resolve()
     destino = Path(destino).expanduser().resolve()
@@ -56,9 +56,8 @@ def criar_backup_diferencial(origem, diferencas, destino):
 
     return destino
 
-# Faz o backup "diferencial"
-def backup_clone (origem, destino, exclude):
-    # disk = '/dev/sdc'                                             # pode ser usado para desmontar o disco
+# Faz o backup diferencial
+def backup_diferencial (origem, destino, exclude):                                           # pode ser usado para desmontar o disco
     hora_inicio = time.strftime('%H-%M-%S')
     dia_inicio = (time.strftime("%Y-%m-%d"))
 
@@ -86,12 +85,23 @@ def backup_clone (origem, destino, exclude):
     l.write(start)
     l.close()
 
+    # Retorna um dicionário dos arquivos da pasta origem
     arquivos_atuais = manifest.listar_arquivos(origem)
+
+    # Encontra o manifest full mais recente, relacionado a pasta origem, na pasta destino
     caminho_manifest_full = manifest.encontrar_manifest_full_mais_recente(origem, destino)
+    
+    # Carrega os dados do manifesto em um dicionário
     manifesto_full = manifest.carregar_manifest(caminho_manifest_full)
+
+    # Separa todos os arquivos novos, atualizados e removidos do manifest full para os arquivos na pasta origem.
     diferencas = manifest.comparar_manifest(manifesto_full, arquivos_atuais)
+
+    # Cria o backup diferencial
     path_backup = destino / f"{dia_inicio}_{hora_inicio}-backup-diferencial.tar.gz"
     criar_backup_diferencial(origem, diferencas, path_backup)
+
+    # Gera e salva o manifesto diferencial
     manifesto_diferencial = manifest.gerar_manifest_diferencial(origem, diferencas, manifesto_full["origem"], dia_inicio, hora_inicio)
     destino_manifesto = destino / f"{dia_inicio}_{hora_inicio}-manifesto-diferencial.json"
     manifest.salvar_manifest(manifesto_diferencial, destino_manifesto)
@@ -109,5 +119,5 @@ if (__name__ == "__main__"):
     # destino = '~/testar-backup/backups/'
     # exclude = ('*.log', '*.tmp', '.recycle')
     args = receber_argumentos()
-    backup_clone(args.origem, args.destino, args.exclude)
+    backup_diferencial(args.origem, args.destino, args.exclude)
 

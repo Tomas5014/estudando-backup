@@ -54,6 +54,7 @@ def verifica_backup (path_backup):
         print(f"Erro ao verificar o backup: {erro}")
         return False
 
+
 def validar_backup_full (resultado_backup, path_backup):
     if resultado_backup.returncode != 0:
         return False, f"falha ao executar backup."
@@ -129,6 +130,7 @@ def backup_full(origem, destino):
     r.write(final)
     r.close()
 
+    # Gera e salva o manifest full com os arquivos da origem
     destino_manifesto = destino / f"{dia_incio}_{hora_inicio}-manifesto-full.json"
     manifesto = manifest.gerar_manifest_full(origem, dia_incio, hora_inicio)
     manifest.salvar_manifest(manifesto, destino_manifesto)
