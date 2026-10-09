@@ -1,5 +1,5 @@
 """
-    python3 backup-full.py ~/testar-backup/arquivos-teste/ ~/testar-backup/backups/ 
+    python3 backup-full.py ~/testar-backup/arquivos-teste/ ~/testar-backup/backups/
 """
 
 import time

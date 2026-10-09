@@ -57,7 +57,7 @@ def criar_backup_diferencial(origem, diferencas, destino):
     return destino
 
 # Faz o backup diferencial
-def backup_diferencial (origem, destino, exclude):                                           # pode ser usado para desmontar o disco
+def backup_diferencial (origem, destino, exclude):
     hora_inicio = time.strftime('%H-%M-%S')
     dia_inicio = (time.strftime("%Y-%m-%d"))
 
@@ -77,7 +77,7 @@ def backup_diferencial (origem, destino, exclude):                              
     destino_log.mkdir(parents=True, exist_ok=True)
 
     # Retorna o caminho para o local onde o log sera salvo
-    destino_log = gera_log(destino_log, "rsync")
+    destino_log = gera_log(destino_log, "diferencial")
     
     # Printar o Banner no arquivo de log
     start = inicio(hora_inicio)
@@ -90,6 +90,15 @@ def backup_diferencial (origem, destino, exclude):                              
 
     # Encontra o manifest full mais recente, relacionado a pasta origem, na pasta destino
     caminho_manifest_full = manifest.encontrar_manifest_full_mais_recente(origem, destino)
+
+    if caminho_manifest_full is None:
+        mensagem_ausencia_full = ("Erro: nenhum backup full encontrado para essa origem.")
+        
+        print(mensagem_ausencia_full)
+
+        with open(destino_log, "a", encoding="utf-8") as log:
+            log.write(f"\n{mensagem_ausencia_full}\n")
+        return False
     
     # Carrega os dados do manifesto em um dicionário
     manifesto_full = manifest.carregar_manifest(caminho_manifest_full)
@@ -102,7 +111,7 @@ def backup_diferencial (origem, destino, exclude):                              
     criar_backup_diferencial(origem, diferencas, path_backup)
 
     # Gera e salva o manifesto diferencial
-    manifesto_diferencial = manifest.gerar_manifest_diferencial(origem, diferencas, manifesto_full["origem"], dia_inicio, hora_inicio)
+    manifesto_diferencial = manifest.gerar_manifest_diferencial(origem, diferencas, caminho_manifest_full, dia_inicio, hora_inicio)
     destino_manifesto = destino / f"{dia_inicio}_{hora_inicio}-manifesto-diferencial.json"
     manifest.salvar_manifest(manifesto_diferencial, destino_manifesto)
 
