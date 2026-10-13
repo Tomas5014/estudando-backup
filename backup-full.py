@@ -30,10 +30,9 @@ def receber_argumentos():
 
 # Constroi o arquivo e path de backup e rotorna
 def gera_backup(origem, destino,data,hora):
-    date = (time.strftime("%Y-%m-%d"))
     nome_arquivo_backup = f"{data}_{hora}-backup-full.tar.gz"
     path_destino = destino / nome_arquivo_backup                # Operador "/" junta caminhos
-    backup = ['tar', 'czvf', path_destino, origem]
+    backup = ['tar', 'czvf', path_destino, "-C", origem, "."]
     return backup, path_destino
 
 
@@ -132,7 +131,7 @@ def backup_full(origem, destino):
 
     # Gera e salva o manifest full com os arquivos da origem
     destino_manifesto = destino / f"{dia_incio}_{hora_inicio}-manifesto-full.json"
-    manifesto = manifest.gerar_manifest_full(origem, dia_incio, hora_inicio)
+    manifesto = manifest.gerar_manifest_full(origem, dia_incio, hora_inicio, path_backup)
     manifest.salvar_manifest(manifesto, destino_manifesto)
 
 

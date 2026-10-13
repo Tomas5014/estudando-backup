@@ -107,11 +107,12 @@ def backup_diferencial (origem, destino, exclude):
     diferencas = manifest.comparar_manifest(manifesto_full, arquivos_atuais)
 
     # Cria o backup diferencial
-    path_backup = destino / f"{dia_inicio}_{hora_inicio}-backup-diferencial.tar.gz"
+    nome_arquivo_backup = f"{dia_inicio}_{hora_inicio}-backup-diferencial.tar.gz"
+    path_backup = destino / nome_arquivo_backup
     criar_backup_diferencial(origem, diferencas, path_backup)
 
     # Gera e salva o manifesto diferencial
-    manifesto_diferencial = manifest.gerar_manifest_diferencial(origem, diferencas, caminho_manifest_full, dia_inicio, hora_inicio)
+    manifesto_diferencial = manifest.gerar_manifest_diferencial(origem, diferencas, caminho_manifest_full, dia_inicio, hora_inicio, nome_arquivo_backup)
     destino_manifesto = destino / f"{dia_inicio}_{hora_inicio}-manifesto-diferencial.json"
     manifest.salvar_manifest(manifesto_diferencial, destino_manifesto)
 

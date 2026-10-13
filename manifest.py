@@ -38,7 +38,7 @@ def listar_arquivos(origem):
 
 
 # Gera um manifest para um backup full
-def gerar_manifest_full(origem, data, hora):
+def gerar_manifest_full(origem, data, hora, arquivo_backup):
 
     origem = Path(origem).expanduser().resolve()
     arquivos = listar_arquivos(origem)
@@ -47,6 +47,7 @@ def gerar_manifest_full(origem, data, hora):
         "tipo": "backup_full",
         "origem": str(origem),
         "data": f"{data} {hora.replace("-",":")}",
+        "arquivo_backup": Path(arquivo_backup).name,
         "arquivos": arquivos
     }
 
@@ -54,12 +55,13 @@ def gerar_manifest_full(origem, data, hora):
 
 
 # Gera um manifest para um backup diferencial
-def gerar_manifest_diferencial(origem, diferencas, base_full, data, hora):
+def gerar_manifest_diferencial(origem, diferencas, base_full, data, hora, nome_arquivo_backup):
     origem = Path(origem).expanduser().resolve()
     
     manifest = {
         "tipo": "diferencial",
-        "base_full": str(base_full),
+        "base_full": Path(base_full).name,
+        "arquivo_backup_diferencial": nome_arquivo_backup,
         "origem": str(origem),
         "data": f"{data} {hora.replace("-",":")}",
         "novos": diferencas["novos"],
