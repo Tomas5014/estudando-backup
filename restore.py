@@ -40,6 +40,37 @@ def remover_arquivos_restauracao(destino_restauracao, manifest_diferencial):
     return True
 
 
+# Constroi o estado dicionário dos arquivos esperados na restauração indexado pelo nome
+def construir_estado_esperado(manifest_full, manifest_diferencial=None):
+    estado = manifest.indexar_arquivos(manifest_full["arquivos"])
+    
+    if manifest_diferencial == None:
+        return estado
+
+    for arquivo in manifest_diferencial["novos"]:
+        estado[arquivo["nome"]] = arquivo
+
+    for arquivo in manifest_diferencial["alterados"]:
+            estado[arquivo["nome"]] = arquivo
+
+    for arquivo in manifest_diferencial["removidos"]:
+        estado.pop(arquivo["nome"], None)
+
+    return estado
+
+# Valida a restauração verificando se todos os arquivos gerados possuem o hash esperado
+def validar_restauracao(destino_restauracao, estado_esperado):
+    for nome, arquivo in estado_esperado.items():
+        caminho = destino_restauracao / nome
+        if not caminho.exists():
+            print(f"[ERRO] Arquivo ausente: {nome}")
+            continue
+        hash_restaurado = manifest.calcular_hash(caminho)
+        if hash_restaurado == arquivo["hash"]:
+            print(f"[OK]: {nome}")
+        else:
+            print(f"[ERRO] Hash deferente: {nome}")
+
 def restore_diferencial(origem, path_backups):
     
     # Capturar dia e hora do inicio do backup
@@ -96,6 +127,10 @@ def restore_diferencial(origem, path_backups):
     if manifest_diferencial != None:
         remover_arquivos_restauracao(destino_restauracao, manifest_diferencial)
 
-# Restauração concluida.
+    # Restauração concluida.
+
+    # Validar restauração
+    estado_esperado = construir_estado_esperado(manifest_full, manifest_diferencial)
+    validar_restauracao(destino_restauracao, estado_esperado)
 
 restore_diferencial("~/testar-backup/arquivos-teste/", "~/testar-backup/backups/")
