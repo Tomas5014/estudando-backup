@@ -1,6 +1,7 @@
 import time
 from pathlib import Path
 import tarfile
+import hashlib
 
 
 # Gera a mensagem de inicio do backup para o arquivo de log
@@ -78,3 +79,15 @@ def extrair_backup(caminho_backup, destino_extracao):
         )
 
     return True
+
+def calcular_hash(caminho):
+    hash_sha256 = hashlib.sha256()
+
+    with open(caminho, "rb") as arquivo:
+        while True:
+            bloco=arquivo.read(1024*1024)
+
+            if not bloco:
+                break
+            hash_sha256.update(bloco)
+    return hash_sha256.hexdigest()

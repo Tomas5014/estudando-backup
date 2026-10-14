@@ -1,6 +1,6 @@
 from pathlib import Path
 import json
-import time
+from utils import calcular_hash
 
 
 # Salva um manifest em um diretório destino
@@ -31,7 +31,8 @@ def listar_arquivos(origem):
             arquivos.append({
                 'nome': str(caminho_relativo), 
                 'tamanho': info.st_size, 
-                'modificado': info.st_mtime
+                'modificado': info.st_mtime,
+                'hash': calcular_hash(caminho)
             })
     
     return arquivos
@@ -106,11 +107,9 @@ def comparar_manifest(manifest_antigo, arquivos_atuais):
         if nome not in antigos:
             novos.append(arquivo_atual)
         else:
-            data_atual = arquivo_atual["modificado"]
-            data_antiga = antigos[nome]["modificado"]
-            tamanho_atual = arquivo_atual["tamanho"]
-            tamanho_antigo = antigos[nome]["tamanho"]
-            if((tamanho_antigo != tamanho_atual) or (data_antiga != data_atual)):
+            hash_atual = arquivo_atual["hash"]
+            hash_antigo = antigos[nome]["hash"]
+            if hash_atual != hash_antigo:
                 alterados.append(arquivo_atual)
 
     # Verifica se há arquivos removidos em antigos.
