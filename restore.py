@@ -4,7 +4,6 @@ import manifest
 from utils import extrair_backup
 
 
-
 def verificar_existencia_diretorio (diretorio):
     return diretorio.exists()
 
@@ -12,15 +11,7 @@ def verificar_se_eh_diretorio (diretorio):
     return diretorio.is_dir()
 
 # As necessidades dos três diretórios fornecidos pelo usuário (existência e se é diretório)
-def validar_diretorios_restauracao (origem, path_backups):
-    
-    # Verificar a existencia e se de fato é diretório (origem):
-    if(not verificar_existencia_diretorio(origem)):
-        return False, f"origem não existe: {origem}"
-    
-    if not(verificar_se_eh_diretorio(origem)):
-        return False, f"origem não é um diretório: {origem}"
-
+def validar_diretorio (path_backups):
     # Verificar a existencia e se de fato é diretório (pasta_backup):
     if(not verificar_existencia_diretorio(path_backups)):
         return False, f"destino de backup não existe: {path_backups}"
@@ -29,6 +20,24 @@ def validar_diretorios_restauracao (origem, path_backups):
         return False, f"destino de backup não é um diretório: {path_backups}"
 
     return True, None
+
+# Faz a remoção dos arquivos contidos em "removidos" do manifest diferencial
+def remover_arquivos_restauracao(destino_restauracao, manifest_diferencial):
+    destino_restauracao = Path(destino_restauracao).expanduser().resolve()
+    
+    lista_removidos = manifest_diferencial["removidos"]
+    
+    for removido in lista_removidos:
+        caminho_remover = (destino_restauracao / removido["nome"]).resolve()
+
+        if not caminho_remover.is_relative_to(destino_restauracao):
+            print(f"Erro: caminho inválido no manifesto: {removido['nome']}")
+            return False
+
+        if caminho_remover.exists() and caminho_remover.is_file():
+            caminho_remover.unlink()
+
+    return True
 
 
 def restore_diferencial(origem, path_backups):
@@ -42,7 +51,7 @@ def restore_diferencial(origem, path_backups):
     path_backups = Path(path_backups).expanduser().resolve()
 
     # As necessidades dos três diretórios fornecidos pelo usuário (existência e se é diretório)
-    validacao_diretorios, msg_erro = validar_diretorios_restauracao(origem, path_backups)
+    validacao_diretorios, msg_erro = validar_diretorio(path_backups)
     if (validacao_diretorios == False):
         print(f"Erro: {msg_erro}")
         return False
@@ -83,7 +92,10 @@ def restore_diferencial(origem, path_backups):
         caminho_backup_diferencial = path_backups / manifest_diferencial["arquivo_backup_diferencial"] 
         extrair_backup(caminho_backup_diferencial, destino_restauracao)
 
-# Remover todos os arquivos marcados como removidos nos manifestos diferencias
+    # Remover todos os arquivos marcados como removidos nos manifestos diferencias
+    if manifest_diferencial != None:
+        remover_arquivos_restauracao(destino_restauracao, manifest_diferencial)
+
 # Restauração concluida.
 
 restore_diferencial("~/testar-backup/arquivos-teste/", "~/testar-backup/backups/")
