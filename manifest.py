@@ -145,3 +145,26 @@ def encontrar_manifest_full_mais_recente(origem, destino):
         candidatos,
         key=lambda caminho: caminho.stat().st_mtime
     )
+
+# Encontra o manifest do backup mais recente dentro do destino
+def encontrar_manifest_diferencial_mais_recente(origem, destino, base_full):
+    destino = Path(destino).expanduser().resolve()
+    origem = Path(origem).expanduser().resolve()
+
+    candidatos = []
+
+    for caminho in destino.glob("*-manifesto-diferencial.json"):
+        manifest = carregar_manifest(caminho)
+        if(
+            manifest["tipo"] == "diferencial"
+            and manifest["base_full"] == base_full
+            and Path(manifest["origem"]).resolve() == origem
+        ):
+            candidatos.append(caminho)
+
+    if not candidatos: return None
+
+    return max(
+        candidatos,
+        key=lambda caminho: caminho.stat().st_mtime
+    )

@@ -1,5 +1,6 @@
 import time
 from pathlib import Path
+import tarfile
 
 
 # Gera a mensagem de inicio do backup para o arquivo de log
@@ -64,3 +65,16 @@ def validar_diretorios (origem, destino, destino_log):
 
     return True, None
 
+def extrair_backup(caminho_backup, destino_extracao):
+    caminho_backup = Path(caminho_backup).expanduser().resolve()
+    destino_extracao = Path(destino_extracao).expanduser().resolve()
+
+    destino_extracao.mkdir(parents=True, exist_ok=True)
+
+    with tarfile.open(caminho_backup, "r:gz") as arquivo_tar:
+        arquivo_tar.extractall(
+            path=destino_extracao,
+            filter="data"
+        )
+
+    return True
