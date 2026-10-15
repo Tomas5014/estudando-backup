@@ -12,7 +12,7 @@ import manifest
 
 
 # Função para receber os argumentos via linha de comando
-def receber_argumentos():
+def receber_argumentos_full():
     parser = argparse.ArgumentParser(
         description='Sistema de Backup Full'
     )
@@ -138,5 +138,5 @@ def backup_full(origem, destino):
 if (__name__ == "__main__"):
     # origem = '~/testar-backup/arquivos-teste/'
     # destino = '~/testar-backup/backups/'
-    args = receber_argumentos()
+    args = receber_argumentos_full()
     backup_full(args.origem, args.destino)

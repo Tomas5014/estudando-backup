@@ -16,7 +16,7 @@ import tarfile
 from utils import inicio, termino, gera_log, validar_diretorios
 
 # Função para receber os argumentos via linha de comando
-def receber_argumentos():
+def receber_argumentos_diferencial():
     parser = argparse.ArgumentParser(
         description='Sistema de Backup Full'
     )
@@ -128,6 +128,6 @@ if (__name__ == "__main__"):
     # origem = '~/testar-backup/arquivos-teste/'
     # destino = '~/testar-backup/backups/'
     # exclude = ('*.log', '*.tmp', '.recycle')
-    args = receber_argumentos()
+    args = receber_argumentos_diferencial()
     backup_diferencial(args.origem, args.destino, args.exclude)
 

@@ -2,13 +2,30 @@ import time
 from pathlib import Path
 import manifest
 from utils import extrair_backup, calcular_hash
+import argparse
+
+def receber_argumentos_restore():
+    parser = argparse.ArgumentParser(
+        description="Sistema de restauração de backup"
+    )
+    parser.add_argument(
+        'origem',
+        help='Diretório referente ao backup'
+    )
+    parser.add_argument(
+        'path_backup',
+        help='Diretório raiz dos backups'
+    )
+    return parser.parse_args()
 
 
 def verificar_existencia_diretorio (diretorio):
     return diretorio.exists()
 
+
 def verificar_se_eh_diretorio (diretorio):
     return diretorio.is_dir()
+
 
 # As necessidades dos três diretórios fornecidos pelo usuário (existência e se é diretório)
 def validar_diretorio (path_backups):
@@ -21,6 +38,7 @@ def validar_diretorio (path_backups):
 
     return True, None
 
+
 # Faz a remoção dos arquivos contidos em "removidos" do manifest diferencial
 def remover_arquivos_restauracao(destino_restauracao, manifest_diferencial):
     destino_restauracao = Path(destino_restauracao).expanduser().resolve()
@@ -31,13 +49,13 @@ def remover_arquivos_restauracao(destino_restauracao, manifest_diferencial):
         caminho_remover = (destino_restauracao / removido["nome"]).resolve()
 
         if not caminho_remover.is_relative_to(destino_restauracao):
-            print(f"Erro: caminho inválido no manifesto: {removido['nome']}")
-            return False
+            erro = f"Erro: caminho inválido no manifesto: {removido['nome']}"
+            return False, erro
 
         if caminho_remover.exists() and caminho_remover.is_file():
             caminho_remover.unlink()
 
-    return True
+    return True, None
 
 
 # Constroi o estado dicionário dos arquivos esperados na restauração indexado pelo nome
@@ -57,6 +75,7 @@ def construir_estado_esperado(manifest_full, manifest_diferencial=None):
         estado.pop(arquivo["nome"], None)
 
     return estado
+
 
 # Valida a restauração verificando se todos os arquivos gerados possuem o hash esperado
 def validar_restauracao(destino_restauracao, estado_esperado):
@@ -96,6 +115,7 @@ def validar_restauracao(destino_restauracao, estado_esperado):
         sucesso = False
 
     return sucesso
+
 
 def restore_diferencial(origem, path_backups):
     
@@ -159,11 +179,14 @@ def restore_diferencial(origem, path_backups):
 
     # Remover todos os arquivos marcados como removidos nos manifestos diferencias
     if manifest_diferencial != None:
-        remover_arquivos_restauracao(destino_restauracao, manifest_diferencial)
+        sucesso, erro = remover_arquivos_restauracao(destino_restauracao, manifest_diferencial)
 
+        if not sucesso:
+            print(f"{erro}\nErro ao processar arquivos removidos.")
+            return False
     # Restauração concluida.
 
-    # Validar restauração
+    # Validar se todos os arquivos da restauração estão corretos
     estado_esperado = construir_estado_esperado(manifest_full, manifest_diferencial)
     resultado = validar_restauracao(destino_restauracao, estado_esperado)
 
@@ -174,4 +197,8 @@ def restore_diferencial(origem, path_backups):
         print("Erro: restauração concluída, mas a validação falhou.")
         return False
 
-restore_diferencial("~/testar-backup/arquivos-teste/", "~/testar-backup/backups/")
+
+if __name__ == "__main__":
+
+    args = receber_argumentos_restore()
+    restore_diferencial(args.origem, args.path_backup)
