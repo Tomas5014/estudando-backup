@@ -60,16 +60,42 @@ def construir_estado_esperado(manifest_full, manifest_diferencial=None):
 
 # Valida a restauração verificando se todos os arquivos gerados possuem o hash esperado
 def validar_restauracao(destino_restauracao, estado_esperado):
+    
+    sucesso = True
+
+    # Valida se todos os arquivos esperados estão presentes na restauração da forma como deveria
     for nome, arquivo in estado_esperado.items():
         caminho = destino_restauracao / nome
         if not caminho.exists():
             print(f"[ERRO] Arquivo ausente: {nome}")
+            sucesso = False
             continue
         hash_restaurado = manifest.calcular_hash(caminho)
         if hash_restaurado == arquivo["hash"]:
             print(f"[OK]: {nome}")
         else:
             print(f"[ERRO] Hash deferente: {nome}")
+            sucesso = False
+
+    # Valida se não há nenhum arquivo além do esperado na restauração
+    esperados = set(estado_esperado.keys())
+    encontrados = set()
+    
+    for caminho in destino_restauracao.rglob("*"):
+        if caminho.is_file():
+            relativo = caminho.relative_to(destino_restauracao)
+
+            encontrados.add(
+                str(relativo)
+            )
+
+    extras = encontrados - esperados
+
+    for nomes in extras:
+        print(f"[ERRO] Arquivo inesperado:{nome}")
+        sucesso = False
+
+    return sucesso
 
 def restore_diferencial(origem, path_backups):
     
@@ -131,6 +157,13 @@ def restore_diferencial(origem, path_backups):
 
     # Validar restauração
     estado_esperado = construir_estado_esperado(manifest_full, manifest_diferencial)
-    validar_restauracao(destino_restauracao, estado_esperado)
+    resultado = validar_restauracao(destino_restauracao, estado_esperado)
+
+    if resultado:
+        print("Restauração concluida e validada com sucesso.")
+        return True
+    else:
+        print("Erro: restauração concluída, mas a validação falhou.")
+        return False
 
 restore_diferencial("~/testar-backup/arquivos-teste/", "~/testar-backup/backups/")
