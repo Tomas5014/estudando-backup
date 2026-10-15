@@ -1,7 +1,7 @@
 import time
 from pathlib import Path
 import manifest
-from utils import extrair_backup
+from utils import extrair_backup, calcular_hash
 
 
 def verificar_existencia_diretorio (diretorio):
@@ -70,7 +70,7 @@ def validar_restauracao(destino_restauracao, estado_esperado):
             print(f"[ERRO] Arquivo ausente: {nome}")
             sucesso = False
             continue
-        hash_restaurado = manifest.calcular_hash(caminho)
+        hash_restaurado = calcular_hash(caminho)
         if hash_restaurado == arquivo["hash"]:
             print(f"[OK]: {nome}")
         else:
@@ -91,7 +91,7 @@ def validar_restauracao(destino_restauracao, estado_esperado):
 
     extras = encontrados - esperados
 
-    for nomes in extras:
+    for nome in extras:
         print(f"[ERRO] Arquivo inesperado:{nome}")
         sucesso = False
 
@@ -142,12 +142,20 @@ def restore_diferencial(origem, path_backups):
     # Extrair o conteudo da base full do manifesto na pasta
     caminho_backup_full = path_backups / manifest_full["arquivo_backup"]
 
-    extrair_backup(caminho_backup_full, destino_restauracao)
+    sucesso, erro = extrair_backup(caminho_backup_full, destino_restauracao)
+
+    if not sucesso:
+        print(f"Erro ao extrair backup Full: {erro}")
+        return False
 
     # Extrair o conteúdo da base diferencial na pasta
     if manifest_diferencial != None:
         caminho_backup_diferencial = path_backups / manifest_diferencial["arquivo_backup_diferencial"] 
-        extrair_backup(caminho_backup_diferencial, destino_restauracao)
+        
+        sucesso, erro = extrair_backup(caminho_backup_diferencial, destino_restauracao)
+        if not sucesso:
+            print(f"Erro ao extrair backup Diferencial: {erro}")
+            return False
 
     # Remover todos os arquivos marcados como removidos nos manifestos diferencias
     if manifest_diferencial != None:

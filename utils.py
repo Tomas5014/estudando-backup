@@ -66,20 +66,31 @@ def validar_diretorios (origem, destino, destino_log):
 
     return True, None
 
+# Extrai o backup para a pasta destino
 def extrair_backup(caminho_backup, destino_extracao):
     caminho_backup = Path(caminho_backup).expanduser().resolve()
     destino_extracao = Path(destino_extracao).expanduser().resolve()
 
+    if not caminho_backup.exists():
+        return False, f"Arquivo de backup não encontrado: {caminho_backup}"
+
+    if not caminho_backup.is_file():
+        return False, f"O caminho do backup não é um arquivo: {caminho_backup}"
+
+    
     destino_extracao.mkdir(parents=True, exist_ok=True)
 
-    with tarfile.open(caminho_backup, "r:gz") as arquivo_tar:
-        arquivo_tar.extractall(
-            path=destino_extracao,
-            filter="data"
-        )
+    try:
+        with tarfile.open(caminho_backup, "r:gz") as arquivo_tar:
+            arquivo_tar.extractall(
+                path=destino_extracao,
+                filter="data"
+            )
+        return True, None
+    except (tarfile.TarError, EOFError, OSError) as erro:
+        return False, str(erro)
 
-    return True
-
+# Calcula a hash de um arquivo
 def calcular_hash(caminho):
     hash_sha256 = hashlib.sha256()
 
@@ -91,3 +102,4 @@ def calcular_hash(caminho):
                 break
             hash_sha256.update(bloco)
     return hash_sha256.hexdigest()
+
