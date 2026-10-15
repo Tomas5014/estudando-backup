@@ -2,5 +2,3 @@
 - Adicionar verificação de integridade no diferencial.
 - exclude diferencial
 - adicionar função para identificar o manifesto do último full no diferencial.
-
-- bug: a restauração não está apagando sub pastas removidas do full pro diferencial

@@ -18,13 +18,10 @@ def salvar_manifest(dados, destino):
 def listar_arquivos(origem):
     origem = Path(origem).expanduser().resolve()
 
-    
     arquivos = []
 
     for caminho in origem.rglob("*"):       # Percorre recursivamente tudo que existe dentro dessa pasta
-
         if caminho.is_file():
-            
             info = caminho.stat()
             caminho_relativo = caminho.relative_to(origem)
 
@@ -37,19 +34,32 @@ def listar_arquivos(origem):
     
     return arquivos
 
+def listar_diretorios(origem):
+    origem = Path(origem).expanduser().resolve()
+
+    diretorios = []
+
+    for caminho in origem.rglob("*"):
+        if caminho.is_dir():
+            relativo = caminho.relative_to(origem)
+            diretorios.append(str(relativo))
+
+    return diretorios
 
 # Gera um manifest para um backup full
 def gerar_manifest_full(origem, data, hora, arquivo_backup):
 
     origem = Path(origem).expanduser().resolve()
     arquivos = listar_arquivos(origem)
+    diretorios = listar_diretorios(origem)
     
     manifest = {
         "tipo": "backup_full",
         "origem": str(origem),
         "data": f"{data} {hora.replace("-",":")}",
         "arquivo_backup": Path(arquivo_backup).name,
-        "arquivos": arquivos
+        "arquivos": arquivos,
+        "diretorios": diretorios
     }
 
     return manifest
@@ -68,6 +78,9 @@ def gerar_manifest_diferencial(origem, diferencas, base_full, data, hora, nome_a
         "novos": diferencas["novos"],
         "alterados": diferencas["alterados"],
         "removidos": diferencas["removidos"],
+        "diretorios_novos": diferencas["diretorios_novos"],
+        "diretorios_removidos": diferencas["diretorios_removidos"],
+        
     }
     return manifest
 
@@ -92,15 +105,21 @@ def indexar_arquivos(arquivos):
 
 # Retorna todos os arquivos novos, modificados e removidos entre um manifesto 
 # e arquivos de um diretório.
-def comparar_manifest(manifest_antigo, arquivos_atuais):
+def comparar_manifest(manifest_antigo, arquivos_atuais, diretorios_atuais):
     arquivos_antigos = manifest_antigo["arquivos"]
+    diretorios_antigos = manifest_antigo["diretorios"]
 
     antigos = indexar_arquivos(arquivos_antigos)
     atuais = indexar_arquivos(arquivos_atuais)
 
+    antigos_dir = set(diretorios_antigos)
+    atuais_dir = set(diretorios_atuais)
+
     novos = []
     alterados = []
     removidos = []
+    diretorios_novos = list(atuais_dir - antigos_dir)
+    diretorios_removidos = list(antigos_dir - atuais_dir)
 
     # Verifica se há arquivos alterados ou novos em atuais
     for nome, arquivo_atual in atuais.items():
@@ -121,6 +140,8 @@ def comparar_manifest(manifest_antigo, arquivos_atuais):
         "novos": novos,
         "alterados": alterados,
         "removidos": removidos,
+        "diretorios_novos": diretorios_novos,
+        "diretorios_removidos": diretorios_removidos,
     }
 
 # Encontra o manifest do backup mais recente dentro do destino

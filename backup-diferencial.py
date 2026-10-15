@@ -44,14 +44,24 @@ def criar_backup_diferencial(origem, diferencas, destino):
 
     arquivos_backup = (diferencas["novos"] + diferencas["alterados"])
 
+    diretorios_backup = diferencas["diretorios_novos"]
+
     with tarfile.open(destino, "w:gz") as arquivo_tar:
         for arquivo in arquivos_backup:
-
             caminho_completo = origem / arquivo["nome"]
 
             arquivo_tar.add(
                 caminho_completo,
                 arcname=arquivo["nome"]
+            )
+
+        for diretorio in diretorios_backup:
+            caminho_completo = origem / diretorio
+
+            arquivo_tar.add(
+                caminho_completo,
+                arcname=diretorio,
+                recursive=False,
             )
 
     return destino
@@ -88,6 +98,9 @@ def backup_diferencial (origem, destino, exclude):
     # Retorna um dicionário dos arquivos da pasta origem
     arquivos_atuais = manifest.listar_arquivos(origem)
 
+    #Retorna um dicionário dos diretórios atuais da pasta origem
+    diretorios_atuais = manifest.listar_diretorios(origem)
+
     # Encontra o manifest full mais recente, relacionado a pasta origem, na pasta destino
     caminho_manifest_full = manifest.encontrar_manifest_full_mais_recente(origem, destino)
 
@@ -104,7 +117,7 @@ def backup_diferencial (origem, destino, exclude):
     manifesto_full = manifest.carregar_manifest(caminho_manifest_full)
 
     # Separa todos os arquivos novos, atualizados e removidos do manifest full para os arquivos na pasta origem.
-    diferencas = manifest.comparar_manifest(manifesto_full, arquivos_atuais)
+    diferencas = manifest.comparar_manifest(manifesto_full, arquivos_atuais, diretorios_atuais)
 
     # Cria o backup diferencial
     nome_arquivo_backup = f"{dia_inicio}_{hora_inicio}-backup-diferencial.tar.gz"

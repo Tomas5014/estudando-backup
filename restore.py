@@ -57,9 +57,33 @@ def remover_arquivos_restauracao(destino_restauracao, manifest_diferencial):
 
     return True, None
 
+def remover_diretorios_restauracao(destino_restauracao, manifest_diferencial):
+    destino_restauracao = Path(destino_restauracao).expanduser().resolve()
+    diretorios_removidos = manifest_diferencial["diretorios_removidos"]
+    diretorios_removidos = sorted(
+        diretorios_removidos,
+        key=lambda diretorio: len(Path(diretorio).parts),
+        reverse=True,
+    )
+
+    for diretorio in diretorios_removidos:
+        caminho = (destino_restauracao / diretorio).resolve()
+
+        if not caminho.is_relative_to(destino_restauracao):
+            erro = (f"Erro: caminho inválido no manifesto: {diretorio}")
+            return False, erro
+
+        if caminho.exists() and caminho.is_dir():
+            try:
+                caminho.rmdir()
+            except OSError as erro:
+                return False, (f"Não foi possível remover o diretório {diretorio}: {erro}")
+
+    return True, None
+
 
 # Constroi o estado dicionário dos arquivos esperados na restauração indexado pelo nome
-def construir_estado_esperado(manifest_full, manifest_diferencial=None):
+def construir_arquivos_esperado(manifest_full, manifest_diferencial=None):
     estado = manifest.indexar_arquivos(manifest_full["arquivos"])
     
     if manifest_diferencial == None:
@@ -76,14 +100,27 @@ def construir_estado_esperado(manifest_full, manifest_diferencial=None):
 
     return estado
 
+def construir_diretorios_esperados(manifest_full, manifest_diferencial=None):
+    diretorios = set(manifest_full["diretorios"])
+
+    if manifest_diferencial is None:
+        return diretorios
+
+    for diretorio in manifest_diferencial["diretorios_novos"]:
+        diretorios.add(diretorio)
+
+    for diretorio in manifest_diferencial["diretorios_removidos"]:
+        diretorios.discard(diretorio)
+
+    return diretorios
 
 # Valida a restauração verificando se todos os arquivos gerados possuem o hash esperado
-def validar_restauracao(destino_restauracao, estado_esperado):
+def validar_restauracao(destino_restauracao, arquivos_esperados, diretorios_esperados):
     
     sucesso = True
 
     # Valida se todos os arquivos esperados estão presentes na restauração da forma como deveria
-    for nome, arquivo in estado_esperado.items():
+    for nome, arquivo in arquivos_esperados.items():
         caminho = destino_restauracao / nome
         if not caminho.exists():
             print(f"[ERRO] Arquivo ausente: {nome}")
@@ -97,21 +134,50 @@ def validar_restauracao(destino_restauracao, estado_esperado):
             sucesso = False
 
     # Valida se não há nenhum arquivo além do esperado na restauração
-    esperados = set(estado_esperado.keys())
-    encontrados = set()
+    arquivos_esperados = set(arquivos_esperados.keys())
+    arquivos_encontrados = set()
     
     for caminho in destino_restauracao.rglob("*"):
         if caminho.is_file():
             relativo = caminho.relative_to(destino_restauracao)
 
-            encontrados.add(
+            arquivos_encontrados.add(
                 str(relativo)
             )
 
-    extras = encontrados - esperados
+    arquivos_extras = arquivos_encontrados - arquivos_esperados
 
-    for nome in extras:
+    for nome in arquivos_extras:
         print(f"[ERRO] Arquivo inesperado:{nome}")
+        sucesso = False
+
+    # Validar diretórios
+    diretorios_encontrados = set()
+
+    for caminho in destino_restauracao.rglob("*"):
+        if caminho.is_dir():
+            relativo = caminho.relative_to(
+                destino_restauracao
+            )
+
+            diretorios_encontrados.add(
+                str(relativo)
+            )
+
+    diretorios_ausentes = (diretorios_esperados - diretorios_encontrados)
+
+    diretorios_extras = (diretorios_encontrados - diretorios_esperados)
+
+    for diretorio in diretorios_ausentes:
+        print(
+            f"[ERRO] Diretório ausente: {diretorio}"
+        )
+        sucesso = False
+
+    for diretorio in diretorios_extras:
+        print(
+            f"[ERRO] Diretório inesperado: {diretorio}"
+        )
         sucesso = False
 
     return sucesso
@@ -127,7 +193,7 @@ def restore_diferencial(origem, path_backups):
     origem = Path(origem).expanduser().resolve()
     path_backups = Path(path_backups).expanduser().resolve()
 
-    # As necessidades dos três diretórios fornecidos pelo usuário (existência e se é diretório)
+    # Valida as necessidades do diretóro de backup
     validacao_diretorios, msg_erro = validar_diretorio(path_backups)
     if (validacao_diretorios == False):
         print(f"Erro: {msg_erro}")
@@ -184,11 +250,20 @@ def restore_diferencial(origem, path_backups):
         if not sucesso:
             print(f"{erro}\nErro ao processar arquivos removidos.")
             return False
+
+        sucesso, erro = remover_diretorios_restauracao(destino_restauracao, manifest_diferencial)
+
+        if not sucesso:
+            print(f"{erro}\nErro ao processar diretórios removidos.")
+            return False
+    
     # Restauração concluida.
 
+
     # Validar se todos os arquivos da restauração estão corretos
-    estado_esperado = construir_estado_esperado(manifest_full, manifest_diferencial)
-    resultado = validar_restauracao(destino_restauracao, estado_esperado)
+    arquivos_esperado = construir_arquivos_esperado(manifest_full, manifest_diferencial)
+    diretorios_esperados = construir_diretorios_esperados(manifest_full, manifest_diferencial)
+    resultado = validar_restauracao(destino_restauracao, arquivos_esperado, diretorios_esperados)
 
     if resultado:
         print("Restauração concluida e validada com sucesso.")
